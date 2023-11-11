@@ -1,0 +1,83 @@
+﻿<Window x:Class="MFSpheres.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:MFSpheres"
+        Icon=".\logo.ico"
+        mc:Ignorable="d"
+        Title="MFSpheres" 
+        Height="800" 
+        Width="1502" 
+        KeyDown="Window_KeyDown">
+    <Grid SizeChanged="Grid_SizeChanged" Margin="0,0,-6,30" Cursor="">
+        <WindowsFormsHost HorizontalAlignment="Left" Width="1024" Initialized="WindowsFormsHost_Initialized" Height="739" VerticalAlignment="Top"/>
+        <Button x:Name="button" Content="Vymaž scénu" Margin="1024,739,0,-28" Click="button_Click" HorizontalAlignment="Left" Width="97" Height="28" VerticalAlignment="Top"/>
+        <Label x:Name="label" Content="Počet vzoriek bočného segmentu:" HorizontalAlignment="Left" Margin="1068,400,0,0" VerticalAlignment="Top"/>
+        <Slider x:Name="slider" HorizontalAlignment="Left" Margin="1068,452,0,0" VerticalAlignment="Top" Width="193" ValueChanged="slider_ValueChanged" Maximum="120" Minimum="2" Value="40" TickPlacement="TopLeft"/>
+        <Label x:Name="label1" Content="1600" HorizontalAlignment="Left" Margin="1068,426,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.159,0.846"/>
+        <CheckBox x:Name="checkBox" Content="Zobraz sieť roviny z = 0" Margin="1066,61,0,0" VerticalAlignment="Top" IsChecked="True" Checked="checkBox_Checked" Unchecked="checkBox_Unchecked" HorizontalAlignment="Left" Width="152"/>
+        <CheckBox x:Name="checkBox1" Content="Zobraz súradnicovú sústavu" Margin="1066,41,0,0" IsChecked="True" Checked="checkBox_Checked" Unchecked="checkBox_Unchecked" Height="15" VerticalAlignment="Top" HorizontalAlignment="Left" Width="169"/>
+        <CheckBox x:Name="checkBox2" Content="Zobraz sfery" Margin="1066,81,0,0" VerticalAlignment="Top" IsChecked="True" Checked="checkBox_Checked" Unchecked="checkBox_Unchecked" HorizontalAlignment="Left" Width="152"/>
+        <CheckBox x:Name="checkBox3" Content="Zobraz droteny model" Margin="1068,194,0,0" VerticalAlignment="Top" Checked="checkBox_Checked" Unchecked="checkBox_Unchecked" HorizontalAlignment="Left" Width="152"/>
+        <CheckBox x:Name="checkBox4" Content="Zobraz polygony" Margin="1068,234,0,0" VerticalAlignment="Top" IsChecked="True" Unchecked="checkBox_Unchecked" Checked="checkBox_Checked" HorizontalAlignment="Left" Width="152"/>
+        <CheckBox x:Name="checkBox5" Content="Zobraz bocnu plochu" Margin="1068,254,0,0" VerticalAlignment="Top" IsChecked="True" Checked="checkBox_Checked" Unchecked="checkBox_Unchecked" HorizontalAlignment="Left" Width="152"/>
+        <CheckBox x:Name="checkBox6" Content="Zobraz vrchnu a spodnu plochu" Margin="1068,274,0,0" VerticalAlignment="Top" IsChecked="True" Checked="checkBox_Checked" Unchecked="checkBox_Unchecked" HorizontalAlignment="Left" Width="193"/>
+        <CheckBox x:Name="checkBox7" Content="Zobraz plochu" Margin="1068,174,0,0" VerticalAlignment="Top" Checked="checkBox7_Checked" Unchecked="checkBox7_Unchecked" HorizontalAlignment="Left" Width="152"/>
+        <GroupBox x:Name="groupBox" Header="Prostredie" Margin="1053,9,0,0" Panel.ZIndex="-1" HorizontalAlignment="Left" Width="217" Height="128" VerticalAlignment="Top"/>
+        <GroupBox x:Name="groupBox1" Header="Nastavenia plochy" Margin="1055,142,0,0" Panel.ZIndex="-3" HorizontalAlignment="Left" Width="217" Height="502" VerticalAlignment="Top"/>
+        <Slider x:Name="slider1" HorizontalAlignment="Left" Margin="1068,372,0,0" VerticalAlignment="Top" Width="193" Value="2" ValueChanged="slider1_ValueChanged" Minimum="1" TickPlacement="TopLeft" SmallChange="1"/>
+        <Label x:Name="label2" Content="Eta:" HorizontalAlignment="Left" Margin="1068,348,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.877,0.718"/>
+        <Label x:Name="label3" Content="2" HorizontalAlignment="Left" Margin="1097,348,0,0" VerticalAlignment="Top" RenderTransformOrigin="1.521,0.628"/>
+        <TextBox x:Name="textBox" HorizontalAlignment="Left" Margin="0,739,0,-28" TextWrapping="Wrap" Width="1024" Height="28" VerticalAlignment="Top"/>
+        <Label x:Name="label4" Content="Počet vzoriek hornej/dolnej časti:" HorizontalAlignment="Left" Margin="1068,490,0,0" VerticalAlignment="Top"/>
+        <Label x:Name="label5" Content="45" HorizontalAlignment="Left" Margin="1068,516,0,0" VerticalAlignment="Top"/>
+        <Slider x:Name="slider2" HorizontalAlignment="Left" Margin="1068,542,0,0" VerticalAlignment="Top" RenderTransformOrigin="3.361,-1.278" Width="193" Minimum="1" Maximum="40" Value="8" TickPlacement="TopLeft" ValueChanged="slider2_ValueChanged"/>
+        <Slider x:Name="slider3" HorizontalAlignment="Left" Margin="1068,325,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.75,-15.722" Width="193" ValueChanged="slider3_ValueChanged" Maximum="100" Value="50"/>
+        <Label x:Name="label6" Content="Delta:" HorizontalAlignment="Left" Margin="1068,294,0,0" VerticalAlignment="Top"/>
+        <Label x:Name="label7" Content="0.5" HorizontalAlignment="Left" Margin="1108,294,0,0" VerticalAlignment="Top" RenderTransformOrigin="1.132,-11.308"/>
+        <RadioButton x:Name="rozvetvena" Content="Rozvetvená" HorizontalAlignment="Left" Margin="1289,182,0,0" VerticalAlignment="Top" IsChecked="True" Checked="rozvetvena_Checked" GroupName="TypPlochy"/>
+        <RadioButton x:Name="tubularna" Content="Tubulárna" HorizontalAlignment="Left" Margin="1289,202,0,0" VerticalAlignment="Top" Checked="tubularna_Checked" GroupName="TypPlochy" Unchecked="tubularna_Unchecked"/>
+        <CheckBox x:Name="ShowTubularNormals" Content="Zobraz riadiace vektory" Margin="1068,214,0,0" VerticalAlignment="Top" Checked="ShowTubularNormals_Checked" Unchecked="ShowTubularNormals_Checked" HorizontalAlignment="Left" Width="143"/>
+        <Slider x:Name="tau" HorizontalAlignment="Left" Margin="1066,614,0,0" VerticalAlignment="Top" RenderTransformOrigin="4.361,-0.648" Width="189" Value="1" Minimum="1" ValueChanged="tau_ValueChanged" Maximum="100"/>
+        <RadioButton x:Name="RozvetvenaHomotopia" Content="Rozvetvená pomocu homotópie" HorizontalAlignment="Left" Margin="1289,222,0,0" VerticalAlignment="Top" Checked="RozvetvenaHomotopia_Checked" Unchecked="RozvetvenaHomotopia_Unchecked" GroupName="TypPlochy"/>
+        <Slider x:Name="slider5" HorizontalAlignment="Left" Margin="1287,268,0,0" VerticalAlignment="Top" Width="189" Maximum="100" Value="100" ValueChanged="slider5_ValueChanged"/>
+        <Label x:Name="label8" Content="Tau: 0.05" HorizontalAlignment="Left" Margin="1068,583,0,0" VerticalAlignment="Top" Width="90"/>
+        <Label x:Name="CasT" Content="t = 1" HorizontalAlignment="Left" Margin="1287,242,0,0" VerticalAlignment="Top" Width="97"/>
+        <GroupBox x:Name="groupBox2" Header="Váhy" Margin="1275,9,0,0" VerticalAlignment="Top" Height="78" HorizontalAlignment="Left" Width="209"/>
+        <RadioButton x:Name="MeanValue" Content="Mean Value" HorizontalAlignment="Left" Margin="1287,61,0,0" GroupName="Vahy" VerticalAlignment="Top" Checked="ModifShep_Checked"/>
+        <RadioButton x:Name="ModifShep" Content="Modifikované Shepardove" HorizontalAlignment="Left" Margin="1287,41,0,0" GroupName="Vahy" VerticalAlignment="Top" Checked="ModifShep_Checked" IsChecked="True"/>
+        <GroupBox x:Name="groupBox3" Header="Typ plochy" Margin="1275,142,0,0" VerticalAlignment="Top" Height="159" Panel.ZIndex="-1" HorizontalAlignment="Left" Width="209"/>
+        <Slider x:Name="slider6" HorizontalAlignment="Left" Margin="1287,473,0,0" VerticalAlignment="Top" Width="188" Maximum="100" ValueChanged="slider6_ValueChanged"/>
+        <Slider x:Name="lambda" HorizontalAlignment="Left" Margin="1285,584,0,0" VerticalAlignment="Top" RenderTransformOrigin="4.361,-0.648" Width="190" Value="1" Minimum="1" ValueChanged="lambda_ValueChanged" Maximum="100"/>
+        <Label x:Name="label9" Content="Lambda: 0.05" HorizontalAlignment="Left" Margin="1287,553,0,0" VerticalAlignment="Top" Width="90"/>
+        <Label x:Name="label10" Content="reper v c1(0.05)" HorizontalAlignment="Left" Margin="1353,447,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.487,0.481"/>
+        <Label x:Name="label11" Content="reper v dj(0.05)" HorizontalAlignment="Left" Margin="1356,504,0,0" VerticalAlignment="Top"/>
+        <Slider x:Name="slider4" HorizontalAlignment="Left" Margin="1287,530,0,0" VerticalAlignment="Top" Width="189" Maximum="100" ValueChanged="slider4_ValueChanged"/>
+        <TextBox x:Name="textBox1" HorizontalAlignment="Left" Height="61" Margin="1024,678,0,0" TextWrapping="Wrap" Text="Čas výpočtu:" VerticalAlignment="Top" Width="466"/>
+        <CheckBox x:Name="reperC" Content="Zobrziť" HorizontalAlignment="Left" Margin="1285,453,0,0" VerticalAlignment="Top" Width="81" Checked="checkBox_Checked" Unchecked="checkBox_Unchecked"/>
+        <CheckBox x:Name="reperD" Content="Zobraziť" HorizontalAlignment="Left" Margin="1287,510,0,0" VerticalAlignment="Top" Width="81" Unchecked="checkBox_Unchecked" Checked="checkBox_Checked"/>
+        <CheckBox x:Name="UCurves" Content="u - krivky" HorizontalAlignment="Left" Margin="1303,332,0,0" VerticalAlignment="Top" IsChecked="True" Checked="checkBox_Checked" Unchecked="checkBox_Unchecked"/>
+        <CheckBox x:Name="VCurves" Content="v - krivky" HorizontalAlignment="Left" Margin="1377,332,0,0" VerticalAlignment="Top" IsChecked="True" Checked="checkBox_Checked" Unchecked="checkBox_Unchecked"/>
+        <GroupBox x:Name="groupBox4" Header="Isokrivky Tubulárnej plochy" HorizontalAlignment="Left" Margin="1275,306,0,0" VerticalAlignment="Top" Height="142" Width="209" Panel.ZIndex="-1"/>
+        <Slider x:Name="slider7" HorizontalAlignment="Left" Margin="1287,378,0,0" VerticalAlignment="Top" Width="190" Maximum="100" Minimum="1" Value="10" ValueChanged="slider4_ValueChanged"/>
+        <Slider x:Name="slider8" HorizontalAlignment="Left" Margin="1285,422,0,0" VerticalAlignment="Top" Width="190" Minimum="2" Maximum="100" Value="40" ValueChanged="slider4_ValueChanged"/>
+        <Label x:Name="label12" Content="Počet kriviek:" HorizontalAlignment="Left" Margin="1287,352,0,0" VerticalAlignment="Top"/>
+        <Label x:Name="label13" Content="Vzorkovanie:" HorizontalAlignment="Left" Margin="1287,396,0,0" VerticalAlignment="Top"/>
+        <Label x:Name="label14" Content="10" HorizontalAlignment="Left" Margin="1371,352,0,0" VerticalAlignment="Top"/>
+        <Label x:Name="label15" Content="40" HorizontalAlignment="Left" Margin="1371,396,0,0" VerticalAlignment="Top"/>
+        <Slider x:Name="slider9" HorizontalAlignment="Left" Margin="1285,633,0,0" VerticalAlignment="Top" Width="190" Maximum="100" Value="100" ValueChanged="slider9_ValueChanged"/>
+        <Label x:Name="label16" Content="Priesvitnosť sfér:" HorizontalAlignment="Left" Margin="1285,607,0,0" VerticalAlignment="Top"/>
+        <RadioButton x:Name="SivaFarba" Content="sivá" HorizontalAlignment="Left" Margin="1069,118,0,0" VerticalAlignment="Top" GroupName="BackColor" IsChecked="True" Checked="checkBox_Checked"/>
+        <RadioButton x:Name="BielaFarba" Content="biela" HorizontalAlignment="Left" Margin="1113,118,0,0" VerticalAlignment="Top" GroupName="BackColor" Checked="checkBox_Checked"/>
+        <Label x:Name="label17" Content="Farba pozadia" HorizontalAlignment="Left" Margin="1066,96,0,0" VerticalAlignment="Top"/>
+        <Label x:Name="label18" Content="1" HorizontalAlignment="Left" Margin="1380,607,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.105,-0.115"/>
+        <Label x:Name="label19" Content="Farba plochy a sfér" HorizontalAlignment="Left" Margin="1157,94,0,0" VerticalAlignment="Top"/>
+        <RadioButton x:Name="radioButton" Content="1" HorizontalAlignment="Left" Margin="1162,118,0,0" VerticalAlignment="Top" GroupName="Color" IsChecked="True" Checked="radioButton_Checked" Unchecked="radioButton_Unchecked"/>
+        <RadioButton x:Name="radioButton1" Content="2" HorizontalAlignment="Left" Margin="1195,118,0,0" VerticalAlignment="Top" GroupName="Color"/>
+        <CheckBox x:Name="perspective" Content="Perspektíva" HorizontalAlignment="Left" Margin="1162,81,0,0" VerticalAlignment="Top" IsChecked="True" Checked="perspective_Checked" Unchecked="perspective_Unchecked"/>
+        <Slider x:Name="SphereSample" HorizontalAlignment="Left" Margin="1287,118,0,0" VerticalAlignment="Top" Width="190" Value="40" Maximum="120" Minimum="2" ValueChanged="slider4_ValueChanged"/>
+        <Label x:Name="label20" Content="Vzorkovanie sfér:" HorizontalAlignment="Left" Margin="1287,92,0,0" VerticalAlignment="Top"/>
+        <Label x:Name="SpheresSamples" Content="40" HorizontalAlignment="Left" Margin="1387,92,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.101,0.603"/>
+    </Grid>
+</Window>
