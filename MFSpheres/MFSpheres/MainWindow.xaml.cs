@@ -164,6 +164,38 @@ namespace MFSpheres
             // pocet vzorkovacich bodov na kazdy segment bocnej plochy
             Lod1 = 40;
             Lod2 = 30;
+
+            _CreateExample1();
+        }
+
+        private void _CreateExample1()
+        {
+            _Clear();
+
+            Spheres.Add(new Sphere(new Vector3(-1, 0, 0), 0.1f));
+            ComputeTubularNormals();
+            _AddSamples();
+
+            Spheres.Add(new Sphere(new Vector3(0, -1, 1), 0.3f));
+            ComputeTubularNormals();
+            _AddSamples();
+
+            Spheres.Add(new Sphere(new Vector3(1, 0, 0), 0.1f));
+            ComputeTubularNormals();
+            _AddSamples();
+
+            Spheres.Add(new Sphere(new Vector3(0, 1, 0.5f), 0.2f));
+            ComputeTubularNormals();
+            _AddSamples();
+        }
+
+        private void _Clear()
+        {
+            Spheres.Clear();
+            SamplesUp.Clear();
+            SamplesDown.Clear();
+            Samples.Clear();
+            Normals.Clear();
         }
 
         #endregion
@@ -3891,11 +3923,7 @@ namespace MFSpheres
         // vymaze sfery, normaly a vsetky vzorkovacie body
         private void button_Click(object sender, RoutedEventArgs e)
         {
-            Spheres.Clear();
-            SamplesUp.Clear();
-            SamplesDown.Clear();
-            Samples.Clear();
-            Normals.Clear();
+            _Clear();
             IsRightDown = false;
             ShowSurface = false;
             checkBox7.IsChecked = false;
