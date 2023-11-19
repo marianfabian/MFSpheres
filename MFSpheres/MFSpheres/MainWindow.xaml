@@ -32,15 +32,15 @@
         <TextBox x:Name="textBox" HorizontalAlignment="Left" Margin="0,739,0,-28" TextWrapping="Wrap" Width="1024" Height="28" VerticalAlignment="Top"/>
         <Label x:Name="label4" Content="Počet vzoriek hornej/dolnej časti:" HorizontalAlignment="Left" Margin="1068,490,0,0" VerticalAlignment="Top"/>
         <Label x:Name="label5" Content="45" HorizontalAlignment="Left" Margin="1068,516,0,0" VerticalAlignment="Top"/>
-        <Slider x:Name="slider2" HorizontalAlignment="Left" Margin="1068,542,0,0" VerticalAlignment="Top" RenderTransformOrigin="3.361,-1.278" Width="193" Minimum="1" Maximum="40" Value="8" TickPlacement="TopLeft" ValueChanged="slider2_ValueChanged"/>
+        <Slider x:Name="slider2" HorizontalAlignment="Left" Margin="1068,542,0,0" VerticalAlignment="Top" RenderTransformOrigin="3.361,-1.278" Width="193" Minimum="1" Maximum="40" Value="30" TickPlacement="TopLeft" ValueChanged="slider2_ValueChanged"/>
         <Slider x:Name="slider3" HorizontalAlignment="Left" Margin="1068,325,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.75,-15.722" Width="193" ValueChanged="slider3_ValueChanged" Maximum="100" Value="50"/>
         <Label x:Name="label6" Content="Delta:" HorizontalAlignment="Left" Margin="1068,294,0,0" VerticalAlignment="Top"/>
         <Label x:Name="label7" Content="0.5" HorizontalAlignment="Left" Margin="1108,294,0,0" VerticalAlignment="Top" RenderTransformOrigin="1.132,-11.308"/>
-        <RadioButton x:Name="rozvetvena" Content="Rozvetvená" HorizontalAlignment="Left" Margin="1289,182,0,0" VerticalAlignment="Top" IsChecked="True" Checked="rozvetvena_Checked" GroupName="TypPlochy"/>
+        <RadioButton x:Name="rozvetvena" Content="Rozvetvená" HorizontalAlignment="Left" Margin="1289,182,0,0" VerticalAlignment="Top" Checked="rozvetvena_Checked" GroupName="TypPlochy"/>
         <RadioButton x:Name="tubularna" Content="Tubulárna" HorizontalAlignment="Left" Margin="1289,202,0,0" VerticalAlignment="Top" Checked="tubularna_Checked" GroupName="TypPlochy" Unchecked="tubularna_Unchecked"/>
         <CheckBox x:Name="ShowTubularNormals" Content="Zobraz riadiace vektory" Margin="1068,214,0,0" VerticalAlignment="Top" Checked="ShowTubularNormals_Checked" Unchecked="ShowTubularNormals_Checked" HorizontalAlignment="Left" Width="143"/>
         <Slider x:Name="tau" HorizontalAlignment="Left" Margin="1066,614,0,0" VerticalAlignment="Top" RenderTransformOrigin="4.361,-0.648" Width="189" Value="1" Minimum="1" ValueChanged="tau_ValueChanged" Maximum="100"/>
-        <RadioButton x:Name="RozvetvenaHomotopia" Content="Rozvetvená pomocu homotópie" HorizontalAlignment="Left" Margin="1289,222,0,0" VerticalAlignment="Top" Checked="RozvetvenaHomotopia_Checked" Unchecked="RozvetvenaHomotopia_Unchecked" GroupName="TypPlochy"/>
+        <RadioButton x:Name="RozvetvenaHomotopia" Content="Rozvetvená pomocu homotópie" HorizontalAlignment="Left" Margin="1289,222,0,0" VerticalAlignment="Top" IsChecked="True" Checked="RozvetvenaHomotopia_Checked" Unchecked="RozvetvenaHomotopia_Unchecked" GroupName="TypPlochy"/>
         <Slider x:Name="slider5" HorizontalAlignment="Left" Margin="1287,268,0,0" VerticalAlignment="Top" Width="189" Maximum="100" Value="100" ValueChanged="slider5_ValueChanged"/>
         <Label x:Name="label8" Content="Tau: 0.05" HorizontalAlignment="Left" Margin="1068,583,0,0" VerticalAlignment="Top" Width="90"/>
         <Label x:Name="CasT" Content="t = 1" HorizontalAlignment="Left" Margin="1287,242,0,0" VerticalAlignment="Top" Width="97"/>
@@ -68,13 +68,13 @@
         <Label x:Name="label15" Content="40" HorizontalAlignment="Left" Margin="1371,396,0,0" VerticalAlignment="Top"/>
         <Slider x:Name="slider9" HorizontalAlignment="Left" Margin="1285,633,0,0" VerticalAlignment="Top" Width="190" Maximum="100" Value="100" ValueChanged="slider9_ValueChanged"/>
         <Label x:Name="label16" Content="Priesvitnosť sfér:" HorizontalAlignment="Left" Margin="1285,607,0,0" VerticalAlignment="Top"/>
-        <RadioButton x:Name="SivaFarba" Content="sivá" HorizontalAlignment="Left" Margin="1069,118,0,0" VerticalAlignment="Top" GroupName="BackColor" IsChecked="True" Checked="checkBox_Checked"/>
-        <RadioButton x:Name="BielaFarba" Content="biela" HorizontalAlignment="Left" Margin="1113,118,0,0" VerticalAlignment="Top" GroupName="BackColor" Checked="checkBox_Checked"/>
+        <RadioButton x:Name="SivaFarba" Content="sivá" HorizontalAlignment="Left" Margin="1069,118,0,0" VerticalAlignment="Top" GroupName="BackColor" Checked="checkBox_Checked"/>
+        <RadioButton x:Name="BielaFarba" Content="biela" HorizontalAlignment="Left" Margin="1113,118,0,0" VerticalAlignment="Top" GroupName="BackColor" IsChecked="True" Checked="checkBox_Checked"/>
         <Label x:Name="label17" Content="Farba pozadia" HorizontalAlignment="Left" Margin="1066,96,0,0" VerticalAlignment="Top"/>
         <Label x:Name="label18" Content="1" HorizontalAlignment="Left" Margin="1380,607,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.105,-0.115"/>
         <Label x:Name="label19" Content="Farba plochy a sfér" HorizontalAlignment="Left" Margin="1157,94,0,0" VerticalAlignment="Top"/>
-        <RadioButton x:Name="radioButton" Content="1" HorizontalAlignment="Left" Margin="1162,118,0,0" VerticalAlignment="Top" GroupName="Color" IsChecked="True" Checked="radioButton_Checked" Unchecked="radioButton_Unchecked"/>
-        <RadioButton x:Name="radioButton1" Content="2" HorizontalAlignment="Left" Margin="1195,118,0,0" VerticalAlignment="Top" GroupName="Color"/>
+        <RadioButton x:Name="radioButton" Content="1" HorizontalAlignment="Left" Margin="1162,118,0,0" VerticalAlignment="Top" GroupName="Color" Checked="radioButton_Checked" Unchecked="radioButton_Unchecked"/>
+        <RadioButton x:Name="radioButton1" Content="2" HorizontalAlignment="Left" Margin="1195,118,0,0" VerticalAlignment="Top" GroupName="Color" IsChecked="True"/>
         <CheckBox x:Name="perspective" Content="Perspektíva" HorizontalAlignment="Left" Margin="1162,81,0,0" VerticalAlignment="Top" IsChecked="True" Checked="perspective_Checked" Unchecked="perspective_Unchecked"/>
         <Slider x:Name="SphereSample" HorizontalAlignment="Left" Margin="1287,118,0,0" VerticalAlignment="Top" Width="190" Value="40" Maximum="120" Minimum="2" ValueChanged="slider4_ValueChanged"/>
         <Label x:Name="label20" Content="Vzorkovanie sfér:" HorizontalAlignment="Left" Margin="1287,92,0,0" VerticalAlignment="Top"/>
