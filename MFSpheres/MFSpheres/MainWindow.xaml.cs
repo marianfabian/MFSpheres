@@ -1,17 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using System.Windows.Forms;
 using System.Windows.Forms.Integration;
 using System.Diagnostics;
@@ -35,7 +25,7 @@ namespace MFSpheres
             IsRightDown = false;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         #region GLOBALNE PREMENNE
 
@@ -103,7 +93,7 @@ namespace MFSpheres
 
         #endregion
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         #region INICIALIZACIA OpenTK, SCENY A PARAMETROV
 
@@ -173,7 +163,7 @@ namespace MFSpheres
 
         #endregion
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         #region VYPOCTY
 
@@ -185,7 +175,7 @@ namespace MFSpheres
         //                                                        //
         ////////////////////////////////////////////////////////////
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // otestuje ci je Delta vyhovujuca 
         private bool CheckDelta()
@@ -195,7 +185,7 @@ namespace MFSpheres
                 for (int j = 0; j < i; j++)
                 {
                     if (Delta >= (Spheres[j].Center.Xy - Spheres[i].Center.Xy).Length / (Spheres[j].R + Spheres[i].R)) return false;
-                }                        
+                }
                 for (int j = i + 1; j < Spheres.Count; j++)
                 {
                     if (Delta >= (Spheres[j].Center.Xy - Spheres[i].Center.Xy).Length / (Spheres[j].R + Spheres[i].R)) return false;
@@ -204,7 +194,7 @@ namespace MFSpheres
             return true;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // najde maximalne moznu hodnotu Delty
         private float FindMaxDelta()
@@ -224,7 +214,7 @@ namespace MFSpheres
             return d;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // Kroneckerova delta funkcia
         private int KDelta(int i, int j)
@@ -233,14 +223,14 @@ namespace MFSpheres
             else return 0;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // i-ta vahova funkcia v bode X pri danej mnozine sfer S
         private float w(int i, Vector2 X, List<Sphere> S, float delta)
         {
             for (int j = 0; j < S.Count; j++)
             {
-                if ((X - S[j].Center.Xy).Length - delta* S[j].R <= eps) return KDelta(i, j); //if (Vector2.Dot(X - S[j].Center.Xy, X - S[j].Center.Xy) - Math.Pow(delta * S[j].R, 2) <= eps) return KDelta(i, j);
+                if ((X - S[j].Center.Xy).Length - delta * S[j].R <= eps) return KDelta(i, j); //if (Vector2.Dot(X - S[j].Center.Xy, X - S[j].Center.Xy) - Math.Pow(delta * S[j].R, 2) <= eps) return KDelta(i, j);
             }
 
             float wSum = 0.0f;
@@ -251,7 +241,7 @@ namespace MFSpheres
             return p(i, X, S, delta) / wSum; //* (float)Math.Pow((P(X, S) - S[i].Center).Length, n))) / wSum;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // funkcia v citateli i-tej vahovej funkcie, ktora sluzi na stabilnejsie vyjadrenie vahovych funkcii
         private float p(int i, Vector2 X, List<Sphere> S, float delta)
@@ -268,7 +258,7 @@ namespace MFSpheres
             return pSum;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // rozdiel polomeru i-tej sfery a referencnej (prvej sfery)
         private float dR(int i, List<Sphere> S)
@@ -276,8 +266,8 @@ namespace MFSpheres
             return S[i].R - S[0].R;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
-        
+        //-----------------------------------------------------------------------------------------------------------------------
+
         // funkcia ktora interpoluje zmeny dR
         private float R(Vector2 X, List<Sphere> S)
         {
@@ -289,8 +279,8 @@ namespace MFSpheres
             return rSum;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
-        
+        //-----------------------------------------------------------------------------------------------------------------------
+
         // parametrizacia roviny paralelnej s rovinou z = 0, ktora prechadza referencnym bodom S[0].Center + S[0].R * n, n=(0,0,1) 
         private Vector3 P(Vector2 X, List<Sphere> S)
         {
@@ -300,9 +290,9 @@ namespace MFSpheres
              Vector3 pref = S[0].Center + S[0].R * n;*/
             return new Vector3(X.X, X.Y, S[0].R); //pref + (X.X - S[0].Center.X) * e1 + (X.Y - S[0].Center.Y) * e2;
         }
-        
-//-----------------------------------------------------------------------------------------------------------------------
-        
+
+        //-----------------------------------------------------------------------------------------------------------------------
+
         // vypocita bod na vrchnej potahovej ploche sfer S v bode X
         private Vector3 SurfacePoint(Vector2 X, List<Sphere> S)
         {
@@ -310,8 +300,8 @@ namespace MFSpheres
             return P(X, S) + R(X, S) * n;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
-        
+        //-----------------------------------------------------------------------------------------------------------------------
+
         // najde priesecnik luca, ktory ziskame inverznou transformaciou bodu kde sme klikli mysou, so sferami v scene  
         private Vector3 FindIntersection(List<Sphere> S, Vector2 mouse)
         {
@@ -353,7 +343,7 @@ namespace MFSpheres
             else return A + t * v;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // rotacia, pomocou kvaternionov, bodu X o uhol theta okolo osi, ktora spaja stredy sfer S0 a S1
         private Vector3 M(Vector3 X, float theta, Sphere S0, Sphere S1)
@@ -374,7 +364,7 @@ namespace MFSpheres
             return X2;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // rotacia, pomocou kvaternionov, bodu X o uhol theta okolo osi, ktora je dana bodom S a smerovym vektorom v
         private Vector3 M(Vector3 X, float theta, Vector3 S, Vector3 v)
@@ -397,7 +387,7 @@ namespace MFSpheres
 
         #endregion
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         #region VYPOCET COONSOVEJ BIKUBICKY STMELOVANEJ ZAPLATY SEGMENTU BOCNEJ PLOCHY
 
@@ -407,7 +397,7 @@ namespace MFSpheres
         //                                                                                  //
         //////////////////////////////////////////////////////////////////////////////////////
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // Hermitove kubicke polynomy
         private float H3(int i, float x)
@@ -434,7 +424,7 @@ namespace MFSpheres
             return t;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // derivacia Hermitovych kubickych polynomov
         private float dH3(int i, float x)
@@ -461,7 +451,7 @@ namespace MFSpheres
             return t;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private List<Vector3> CheckKonvexAt(int i, int j, List<Sphere> S)
         {
@@ -524,21 +514,21 @@ namespace MFSpheres
             return new List<Vector3> { t0, t1 };
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private Vector3 HermiteCurve(float u, Vector3 A, Vector3 v0, Vector3 v1, Vector3 B)
         {
             return H3(0, u) * A + H3(1, u) * v0 + H3(2, u) * v1 + H3(3, u) * B;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private Vector3 dHermiteCurve(float u, Vector3 A, Vector3 v0, Vector3 v1, Vector3 B)
         {
             return dH3(0, u) * A + dH3(1, u) * v0 + dH3(2, u) * v1 + dH3(3, u) * B;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // hranicna krivka c0 Coonsovej zaplaty
         private Vector3 c0(int i, float u, List<Sphere> S)
@@ -548,7 +538,7 @@ namespace MFSpheres
             return X;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // hranicna krivka c1 Coonsovej zaplaty na i-tom segmente
         private Vector3 c1(int i, float u, List<Sphere> S)
@@ -562,7 +552,7 @@ namespace MFSpheres
             return SurfacePoint(X.Xy, S);
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // hranicna krivka d0 Coonsovej zaplaty na i-tom segmente
         private Vector3 d0(int i, float v, List<Sphere> S)
@@ -617,7 +607,7 @@ namespace MFSpheres
             return -S[i].R * (float)(Math.PI * Math.Sin(Math.PI * ((double)v + 1))) * e3 - S[i].R * (float)(Math.PI * Math.Cos(Math.PI * ((double)v + 1))) * ti2;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // hranicna krivka d1 Coonsovej zaplaty na i-tom segmente
         private Vector3 d1(int i, float v, List<Sphere> S)
@@ -660,7 +650,7 @@ namespace MFSpheres
                 return M(X, -v * (float)Math.PI, Spheres[i], Spheres[0]);
             }*/
         }
-     
+
         // derivacia hranicnej krivky d1 Coonsovej zaplaty na i-tom segmente
         private Vector3 dd1(int i, float v, List<Sphere> S)
         {
@@ -690,8 +680,8 @@ namespace MFSpheres
 
             return -C1.R * (float)(Math.PI * Math.Sin(Math.PI * ((double)v + 1))) * e3 - C1.R * (float)(Math.PI * Math.Cos(Math.PI * ((double)v + 1))) * ti2;
         }
-       
-//-----------------------------------------------------------------------------------------------------------------------
+
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // j-ta (j=0,1) funkcia derivacii ej na i-tom segmente bocnej potahovej plochy
         private Vector3 e(int i, int j, float u, List<Sphere> S)
@@ -723,7 +713,7 @@ namespace MFSpheres
 
             //float tau = Lambda * v.Length;
             Vector3 nS;
-            Vector3 dcij; 
+            Vector3 dcij;
 
             nS = normalS(X.X, X.Y, S);
             dcij = ds(i, u, S);
@@ -821,7 +811,7 @@ namespace MFSpheres
             }*/
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // j-ta (j=0,1) funkcia derivacii fj na i-tom segmente bocnej potahovej plochy (aj v case t pre potahovu plochu pomocou homotopie)
         private Vector3 f(int i, int j, float v, List<Sphere> S)
@@ -862,7 +852,7 @@ namespace MFSpheres
                 else if (i == Spheres.Count - 2) t1 = Spheres[0].Center.Xy - Spheres[i + 1].Center.Xy;
                 else t1 = Spheres[1].Center.Xy - Spheres[0].Center.Xy;
             }*/
-            if(S.Count > 2)
+            if (S.Count > 2)
             {
                 if (i >= 1 && i <= S.Count - 3)
                 {
@@ -915,7 +905,7 @@ namespace MFSpheres
                     n = new Vector3(s.X, s.Y, 0.0f);
                 }
             }
-            
+
             /*if (r1 < r2)
             {
                 r2 = (float)Math.Exp(s.Length) * r2;
@@ -934,7 +924,7 @@ namespace MFSpheres
                 default:
                     return s;
             }*/
-            if (j == 0) return  (float)Math.Pow(S0.R / S1.R, Lambda) * n;
+            if (j == 0) return (float)Math.Pow(S0.R / S1.R, Lambda) * n;
             else return (float)Math.Pow(S1.R / S0.R, Lambda) * n;
 
 
@@ -986,7 +976,7 @@ namespace MFSpheres
              }*/
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // prva tvoriaca zaplata
         private Vector3 Sc(int i, float u, float v, List<Sphere> S)
@@ -994,7 +984,7 @@ namespace MFSpheres
             return H3(0, v) * c0(i, u, S) + H3(1, v) * e(i, 0, u, S) + H3(2, v) * e(i, 1, u, S) + H3(3, v) * c1(i, u, S);
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // druha tvoriaca zaplata
         private Vector3 Sd(int i, float u, float v, List<Sphere> S)
@@ -1002,7 +992,7 @@ namespace MFSpheres
             return H3(0, u) * d0(i, v, S) + H3(1, u) * f(i, 0, v, S) + H3(2, u) * f(i, 1, v, S) + H3(3, u) * d1(i, v, S);
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // korekcna zaplata
         private Vector3 Scd(int i, float u, float v, List<Sphere> S)
@@ -1036,17 +1026,17 @@ namespace MFSpheres
                    Hv[3] * (Hu[0] * c1(i, 0, S) + Hu[1] * f(i, 0, 1, S) + Hu[2] * f(i, 1, 1, S) + Hu[3] * c1(i, 1, S));
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // vypocita bod na Coonsovej zaplate na i-tom segmente
         private Vector3 CoonsPatchPoint(int i, float u, float v, List<Sphere> S)
         {
-            return Sc(i, u ,v, S) + Sd(i, u, v, S) - Scd(i, u, v, S);
+            return Sc(i, u, v, S) + Sd(i, u, v, S) - Scd(i, u, v, S);
         }
 
         #endregion
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         #region VYPOCET PARCIALNYCH DERIVACII HORNEJ POLOCHY 
 
@@ -1064,7 +1054,7 @@ namespace MFSpheres
             return 1.0f / (float)Math.Pow((X - S[i].Center.Xy).Length - delta * S[i].R, Eta);  //1.0f / (float)Math.Pow(Vector2.Dot(X - S[i].Center.Xy, X - S[i].Center.Xy) - Math.Pow(delta * S[i].R, 2), n);
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private float dF(string uv, int i, float u, float v, float delta, List<Sphere> S)
         {
@@ -1074,7 +1064,7 @@ namespace MFSpheres
             else return 0.0f;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private float G(float u, float v, float delta, List<Sphere> S)
         {
@@ -1086,7 +1076,7 @@ namespace MFSpheres
             return gSum;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private float dG(string uv, float u, float v, float delta, List<Sphere> S)
         {
@@ -1098,7 +1088,7 @@ namespace MFSpheres
             return gSum;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // parcialna derivacia podla u/v i-tej vahovej funkcie
         private float dW(string uv, int i, float u, float v, float delta, List<Sphere> S)
@@ -1106,7 +1096,7 @@ namespace MFSpheres
             return (dF(uv, i, u, v, delta, S) * G(u, v, delta, S) - F(i, u, v, delta, S) * dG(uv, u, v, delta, S)) / (float)Math.Pow(G(u, v, delta, S), 2);
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // parcialna derivacia podla u/v parametrizacie hornej casti potahovej plochy
         private Vector3 dS(string uv, float u, float v, List<Sphere> S)
@@ -1120,11 +1110,11 @@ namespace MFSpheres
                 if ((X - S[i].Center.Xy).Length - Delta * S[i].R <= eps && uv == "u") return e1;  //if (Vector2.Dot(X - S[i].Center.Xy, X - S[i].Center.Xy) - Math.Pow(Delta * S[i].R, 2) <= eps && uv == "u") return e1;
                 if ((X - S[i].Center.Xy).Length - Delta * S[i].R <= eps && uv == "v") return e2;  //if (Vector2.Dot(X - S[i].Center.Xy, X - S[i].Center.Xy) - Math.Pow(Delta * S[i].R, 2) <= eps && uv == "v") return e2;
             }
-            
+
             Vector3 nalfa = new Vector3(0.0f, 0.0f, 1.0f);
             float dr = 0.0f;
 
-            for(int i = 0; i < S.Count; i++)
+            for (int i = 0; i < S.Count; i++)
             {
                 dr += dW(uv, i, u, v, Delta, S) * dR(i, S);
             }
@@ -1134,7 +1124,7 @@ namespace MFSpheres
             else return Vector3.Zero;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // normala v bode (u,v) hornej casti potahovej plochy
         private Vector3 normalS(float u, float v, List<Sphere> S)
@@ -1147,7 +1137,7 @@ namespace MFSpheres
             return Vector3.Cross(dS("u", u, v, S), dS("v", u, v, S));
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // nakresli parcialne derivacie v bode (u,v) a normalovy vektor pre t mimo intervalu <0,1>, inak nakresli reper v i-tej hranicnej krivke hornej plochy 
         private void DrawNormalS(int i, float t, float s, float u, float v, List<Sphere> S)
@@ -1178,7 +1168,7 @@ namespace MFSpheres
                 D0 = d0(i, s, casT, S);
                 D1 = d1(i, s, casT, S);
             }
-            
+
             float[] red = { 1.0f, 0.0f, 0.0f, 1.0f };
             float[] green = { 0.0f, 1.0f, 0.0f, 1.0f };
             float[] magenta = { 0.5f, 0.0f, 0.5f, 1.0f };
@@ -1188,21 +1178,21 @@ namespace MFSpheres
             GL.LineWidth(2.0f);
             GL.Begin(PrimitiveType.Lines);
 
-            if(reperC.IsChecked == true)
+            if (reperC.IsChecked == true)
             {
                 GL.Vertex3(C1);
                 if (rozvetvena.IsChecked == true) GL.Vertex3(C1 + normalS(u, v, S));
                 else GL.Vertex3(C1 + normalSH(u, v, casT, S));
             }
 
-            if(reperD.IsChecked == true)
+            if (reperD.IsChecked == true)
             {
                 GL.Vertex3(D0);
                 GL.Vertex3(D0 + Lambda * (D0 - S0.Center).Normalized());
                 GL.Vertex3(D1);
                 GL.Vertex3(D1 + Lambda * (D1 - S1.Center).Normalized());
             }
-            
+
             if (s >= 0 && s <= 1 && reperD.IsChecked == true)
             {
                 GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
@@ -1228,7 +1218,7 @@ namespace MFSpheres
                 GL.Vertex3(D1 + f(i, 1, t, S));
             }
 
-            if (t >= 0 && t <=1 && reperC.IsChecked == true)
+            if (t >= 0 && t <= 1 && reperC.IsChecked == true)
             {
                 Vector3 dss = ds(i, t, S);
                 Vector3 dss2 = dsup(i, t, casT, S);
@@ -1238,7 +1228,7 @@ namespace MFSpheres
                 GL.LineWidth(2.0f);
                 GL.Begin(PrimitiveType.Lines);
                 GL.Vertex3(C1);
-                if(rozvetvena.IsChecked == true) GL.Vertex3(C1 + dss);
+                if (rozvetvena.IsChecked == true) GL.Vertex3(C1 + dss);
                 else GL.Vertex3(C1 + dss2);
                 dss.Z = -dss.Z;
                 dss2.Z = -dss2.Z;
@@ -1282,7 +1272,7 @@ namespace MFSpheres
 
         #endregion
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         #region VYPOCET DERIVACII NA k-TEJ HRANICNEJ KRIVKE HORNEJ POLOCHY
 
@@ -1292,7 +1282,7 @@ namespace MFSpheres
         //                                                                      //
         //////////////////////////////////////////////////////////////////////////
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private float h(int i, int k, float t, List<Sphere> S)
         {
@@ -1307,8 +1297,8 @@ namespace MFSpheres
             }
             return 1.0f / (float)Math.Pow(d - Delta * S[i].R, Eta);  //1.0f / (float)Math.Pow(d - Math.Pow(Delta * S[i].R, 2), n);
         }
-        
-//-----------------------------------------------------------------------------------------------------------------------
+
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private float dh(int i, int k, float t, List<Sphere> S)
         {
@@ -1338,7 +1328,7 @@ namespace MFSpheres
             return -n * d / (q * (float)Math.Pow(q - Delta * S[i].R, n + 1));*/
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private float g(int k, float t, List<Sphere> S)
         {
@@ -1350,7 +1340,7 @@ namespace MFSpheres
             return gSum;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private float dg(int k, float t, List<Sphere> S)
         {
@@ -1362,7 +1352,7 @@ namespace MFSpheres
             return dgSum;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private float dw(int i, int k, float t, List<Sphere> S)
         {
@@ -1396,7 +1386,7 @@ namespace MFSpheres
             return (dh(i, k, t, S) * g(k, t, S) - h(i, k, t, S) * dg(k, t, S)) / (float)Math.Pow(g(k, t, S), 2);
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private Vector3 ds(int k, float t, List<Sphere> S)
         {
@@ -1455,7 +1445,7 @@ namespace MFSpheres
             return dS("u", X.X, X.Y, S) * v[0] + dS("v", X.X, X.Y, S) * v[1];
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // vypocita normalu vo vrchole (i,j) na segmente bocnej/tubularnej potahovej plochy
         private Vector3 ComputeNormal(int k, int i, int j)
@@ -1482,9 +1472,9 @@ namespace MFSpheres
                 n4 = Vector3.Cross(v4, v1);
                 n = (n1 + n2 + n3 + n4) / 4.0f;
             }
-            else if(i == 0)
+            else if (i == 0)
             {
-                if(j > 0 && j < Lod1 - 1)
+                if (j > 0 && j < Lod1 - 1)
                 {
                     v1 = Samples[k][i + 1, j] - Samples[k][i, j];
                     v2 = Samples[k][i, j + 1] - Samples[k][i, j];
@@ -1551,7 +1541,7 @@ namespace MFSpheres
             return -n;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // spatna projekcia kliknuteho bodu do sceny
         public Vector3 UnProject(Vector3 mouse, Matrix4 projection, Matrix4 view, Size viewport)
@@ -1581,7 +1571,7 @@ namespace MFSpheres
 
         #endregion
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         #region VYPOCET BODOV TUBULARNEJ POTAHOVEJ PLOCHY  
 
@@ -1591,7 +1581,7 @@ namespace MFSpheres
         //                                                        //
         ////////////////////////////////////////////////////////////
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // kubicka Hermitova krivka interpolujuca stredy sfer Si, Si+1 a normalove vektory ni, ni+1 rovin v ktorych lezia dotykove kruznice
         private Vector3 t(int i, float u)
@@ -1599,7 +1589,7 @@ namespace MFSpheres
             return H3(0, u) * Spheres[i].Center + H3(1, u) * Normals[i] + H3(2, u) * Normals[i + 1] + H3(3, u) * Spheres[i + 1].Center;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // derivacia tejto krivky
         private Vector3 dt(int i, float u)
@@ -1607,7 +1597,7 @@ namespace MFSpheres
             return dH3(0, u) * Spheres[i].Center + dH3(1, u) * Normals[i] + dH3(2, u) * Normals[i + 1] + dH3(3, u) * Spheres[i + 1].Center;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // usecka medzi stredom sfery Si a Si+1
         private Vector2 C(int i, float u)
@@ -1615,7 +1605,7 @@ namespace MFSpheres
             return Spheres[i].Center.Xy + u * (Spheres[i + 1].Center.Xy - Spheres[i].Center.Xy);
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // "konturova" krivka ktoru budeme potom rotovat
         private Vector3 Contour(int i, float u)
@@ -1630,10 +1620,11 @@ namespace MFSpheres
                 Vector3 sup = SUp(X.X, X.Y, casT, S);
                 return sup + (t(i, u) - new Vector3(sup.X, sup.Y, 0.0f));
             }
-            else */return SurfacePoint(X, S) + (t(i, u) - new Vector3(X.X, X.Y, 0.0f));
+            else */
+            return SurfacePoint(X, S) + (t(i, u) - new Vector3(X.X, X.Y, 0.0f));
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // vysledny i-ty segment tubularnej plochy, ktory vznikne rotaciou konturovej krivky Contour(i,u) okolo osi danej t(i,u) a dt(i,u)
         private Vector3 T(int i, float u, float v)
@@ -1647,7 +1638,7 @@ namespace MFSpheres
             return M(Contur(i, u), fi, new Vector3(t(i, u).X, t(i, u).Y, 0.0f), new Vector3(dt(i, u).X, dt(i, u).Y, 0.0f));*/
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // vypocita normalove vektory ni rovin v ktorych lezia dotykove kruznice
         private void ComputeTubularNormals()
@@ -1685,7 +1676,7 @@ namespace MFSpheres
             }
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // zobrazi normalove vektory ni
         private void DrawTubularNormals()
@@ -1718,7 +1709,7 @@ namespace MFSpheres
             }
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // najde priesecnik luca, ktory ziskame inverznou transformaciou bodu kde sme klikli mysou, s normalovymi vektormi
         private Vector3 FindIntersection(List<Sphere> S, List<Vector3> normals, float r, Vector2 mouse)
@@ -1764,10 +1755,10 @@ namespace MFSpheres
 
         #endregion
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         #region VYPOCET POTAHOVEJ PLOCHY POMOCOU HOMOTOPIE
-                
+
         //////////////////////////////////////////////////////////////
         //                                                          //
         //        VYPOCET POTAHOVEJ PLOCHY POMOCOU HOMOTOPIE        //
@@ -1791,7 +1782,7 @@ namespace MFSpheres
 
                 if (d <= eps && d >= -eps)
                 {
-                    if(C0.X != C1.X)
+                    if (C0.X != C1.X)
                     {
                         t = (u - C0.X) / (C1.X - C0.X);
                     }
@@ -1815,7 +1806,7 @@ namespace MFSpheres
         private float TanAlfaPol(int i, float u, float v)
         {
             Vector2 X = new Vector2(u, v);
-            Vector2 v0; 
+            Vector2 v0;
             Vector2 v1;
             if (i < 0) v0 = Spheres[Spheres.Count - 1].Center.Xy - X;
             else v0 = Spheres[i].Center.Xy - X;
@@ -1830,7 +1821,7 @@ namespace MFSpheres
         {
             return X.X * Y.Y - X.Y * Y.X;
         }
-        
+
         // nastavenie referencneho bodu
         private void SetRefPoint(List<Sphere> S)
         {
@@ -1868,13 +1859,13 @@ namespace MFSpheres
 
             Matrix4 Mat = new Matrix4(row0, row1, row2, row3);
             X2 = Mat * X2;
-            return X2.Xyz;   
+            return X2.Xyz;
         }
 
         private Matrix4 M(int i, float t, List<Sphere> S)
         {
             float dit = 1.0f + t * (S[i].R / rRef - 1.0f);
-            
+
 
             Vector4 row0 = new Vector4(dit, 0.0f, 0.0f, S[i].Center.X * (1.0f - dit));
             Vector4 row1 = new Vector4(0.0f, dit, 0.0f, S[i].Center.Y * (1.0f - dit));
@@ -1888,7 +1879,7 @@ namespace MFSpheres
         {
             float dt = 0.0f;
             float ut = 0.0f, vt = 0.0f, dit;
-            
+
             Vector2 X = new Vector2(u, v);
 
             Vector4 row0 = Vector4.Zero;
@@ -1896,7 +1887,7 @@ namespace MFSpheres
             Vector4 row2 = Vector4.Zero;
             Vector4 row3 = new Vector4(0.0f, 0.0f, 0.0f, 1.0f);
 
-            if(ModifShep.IsChecked == true)
+            if (ModifShep.IsChecked == true)
             {
                 for (int i = 0; i < S.Count; i++)
                 {
@@ -1906,7 +1897,7 @@ namespace MFSpheres
                     vt += w(i, X, S, 0.0f) * S[i].Center.Y * (1.0f - dit);
                 }
             }
-            if(MeanValue.IsChecked == true)
+            if (MeanValue.IsChecked == true)
             {
                 for (int i = 0; i < S.Count; i++)
                 {
@@ -1916,7 +1907,6 @@ namespace MFSpheres
                     vt += gama(i, u, v) * S[i].Center.Y * (1.0f - dit);
                 }
             }
-            
 
             row0[0] = dt;
             row0[3] = ut;
@@ -1945,7 +1935,7 @@ namespace MFSpheres
             Suvt.Z = -Suvt.Z;
             return Suvt;
         }
-        
+
         // parcialne derivacie hornej casti
         private Vector3 dSUp(string uv, float u, float v, float t, List<Sphere> S)
         {
@@ -2010,7 +2000,7 @@ namespace MFSpheres
 
         #endregion
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         #region VYPOCET COONSOVEJ BIKUBICKY STMELOVANEJ ZAPLATY SEGMENTU BOCNEJ PLOCHY POMOCOU HOMOTOPIE
 
@@ -2028,7 +2018,7 @@ namespace MFSpheres
             return X;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // hranicna krivka c1 Coonsovej zaplaty na i-tom segmente v case t
         private Vector3 c1(int i, float u, float t, List<Sphere> S)
@@ -2042,7 +2032,7 @@ namespace MFSpheres
             return SUp(X.X, X.Y, t, S);
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // hranicna krivka d0 Coonsovej zaplaty na i-tom segmente v case t
         private Vector3 d0(int i, float v, float t, List<Sphere> S)
@@ -2098,7 +2088,7 @@ namespace MFSpheres
             return -S[i].R * dit * (float)(Math.PI * Math.Sin(Math.PI * ((double)v + 1))) * e3 - S[i].R * dit * (float)(Math.PI * Math.Cos(Math.PI * ((double)v + 1))) * ti2;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // hranicna krivka d1 Coonsovej zaplaty na i-tom segmente v case t
         private Vector3 d1(int i, float v, float t, List<Sphere> S)
@@ -2163,7 +2153,7 @@ namespace MFSpheres
             return -C1.R * dit * (float)(Math.PI * Math.Sin(Math.PI * ((double)v + 1))) * e3 - C1.R * dit * (float)(Math.PI * Math.Cos(Math.PI * ((double)v + 1))) * ti2;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // j-ta (j=0,1) funkcia derivacii ej na i-tom segmente bocnej potahovej plochy v case t
         private Vector3 e(int i, int j, float u, float t, List<Sphere> S)
@@ -2209,7 +2199,7 @@ namespace MFSpheres
             return Tau * Vector3.Cross(nS, dcij).Normalized();
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // prva tvoriaca zaplata v case t
         private Vector3 Sc(int i, float u, float v, float t, List<Sphere> S)
@@ -2217,7 +2207,7 @@ namespace MFSpheres
             return H3(0, v) * c0(i, u, t, S) + H3(1, v) * e(i, 0, u, t, S) + H3(2, v) * e(i, 1, u, t, S) + H3(3, v) * c1(i, u, t, S);
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // druha tvoriaca zaplata v case t
         private Vector3 Sd(int i, float u, float v, float t, List<Sphere> S)
@@ -2225,7 +2215,7 @@ namespace MFSpheres
             return H3(0, u) * d0(i, v, t, S) + H3(1, u) * f(i, 0, v, S) + H3(2, u) * f(i, 1, v, S) + H3(3, u) * d1(i, v, t, S);
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // korekcna zaplata v case t
         private Vector3 Scd(int i, float u, float v, float t, List<Sphere> S)
@@ -2243,7 +2233,7 @@ namespace MFSpheres
                    Hv[3] * (Hu[0] * c1(i, 0, t, S) + Hu[1] * f(i, 0, 1, S) + Hu[2] * f(i, 1, 1, S) + Hu[3] * c1(i, 1, t, S));
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // vypocita bod na Coonsovej zaplate na i-tom segmente v case t
         private Vector3 CoonsPatchPoint(int i, float u, float v, float t, List<Sphere> S)
@@ -2254,7 +2244,7 @@ namespace MFSpheres
 
         #endregion
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         #region VYKRESLENIE PROSTREDIA
 
@@ -2287,7 +2277,7 @@ namespace MFSpheres
             GL.End();
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // vykreslenie siete roviny z = 0
         private void DrawGrid()
@@ -2319,7 +2309,7 @@ namespace MFSpheres
 
         #endregion
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         #region VYPOCET A VYKRESLENIE POTAHOVEJ PLOCHY
 
@@ -2332,7 +2322,7 @@ namespace MFSpheres
         // vypocet bodov tubularnej potahovej plochy
         private void ComputeTubularSurface(int lod)
         {
-           // ComputeTubularNormals();
+            // ComputeTubularNormals();
 
             for (int i = 0; i < Spheres.Count - 1; i++)
             {
@@ -2348,7 +2338,7 @@ namespace MFSpheres
             }
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // vykreslenie tubularnej potahovej plochy
         private void DrawTubularSurface(int lod)
@@ -2425,7 +2415,7 @@ namespace MFSpheres
 
         private void DrawTubularIsoLines(int n, int lod)
         {
-            Vector3[,] Pts = new Vector3[n,lod];
+            Vector3[,] Pts = new Vector3[n, lod];
             float[] blue = { 0.0f, 0.0f, 1.0f, 1.0f };
             float[] magenta = { 1.0f, 0.0f, 1.0f, 1.0f };
 
@@ -2476,7 +2466,7 @@ namespace MFSpheres
                     }
 
                     // vykreslenie segmentu tubularnej plochy
-                    for (int j = 1; j < n-1; j++)
+                    for (int j = 1; j < n - 1; j++)
                     {
                         //GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
                         //GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Diffuse, blue);
@@ -2516,7 +2506,7 @@ namespace MFSpheres
             }
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // vypocet bodov hornej a dolnej casti potahovej plochy
         private void ComputeUpDownSurface(List<Sphere> S, Vector3 T, int lod)
@@ -2586,7 +2576,7 @@ namespace MFSpheres
                         t = C0 + (1.0f - t0) * (T - C0);
                         SamplesUpDown[i][lod - 1, 0, 1] = SUp(t.X, t.Y, casT, S);
                     }
-                    
+
                 }
                 stopWatch1.Stop();
                 casHom += stopWatch1.ElapsedMilliseconds;
@@ -2633,7 +2623,7 @@ namespace MFSpheres
                                 t2 = (float)n / lod;
                                 Vector3 c0 = C0 + (1.0f - t0) * (T - C0);
                                 Vector3 h = HermiteCurve(1.0f - t0, C0, n0[1], n1[0], C1);
-                                X =  c0 * t2 / (t1 + t2) + h * t1 / (t1 + t2);
+                                X = c0 * t2 / (t1 + t2) + h * t1 / (t1 + t2);
                                 SamplesUpDown[i][l, m, n] = SurfacePoint(X.Xy, S);
                             }
                         }
@@ -2650,14 +2640,14 @@ namespace MFSpheres
                         t = C0 + (1.0f - t0) * (T - C0);
                         SamplesUpDown[i][lod - 1, 0, 1] = SurfacePoint(t.Xy, S);
                     }
-                        
+
                 }
                 stopWatch2.Stop();
                 casRozv = +stopWatch2.ElapsedMilliseconds;
             }
-    }
+        }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // vykreslenie hornej a dolnej casti potahovej plochy
         private void DrawUpDownSurface(List<Sphere> S, int lod)
@@ -2846,7 +2836,7 @@ namespace MFSpheres
             }
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // vypocet bodov vsetkych segmentov bocnej potahovej plochy
         private void ComputeSideSurface(List<Sphere> S, int lod)
@@ -2921,7 +2911,7 @@ namespace MFSpheres
             }
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // vypocet a vykreslenie bodov vsetkych segmentov bocnej potahovej plochy
         private void DrawSideSurface(List<Sphere> S, int lod)
@@ -3006,7 +2996,7 @@ namespace MFSpheres
             }
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // vypocet celej potahovej plochy
         private void ComputeSkinningSurface(List<Sphere> S, int lod1, int lod2)
@@ -3036,7 +3026,7 @@ namespace MFSpheres
                     }
                 }
 
-                if(Homotopy) casHom = 0.0f;
+                if (Homotopy) casHom = 0.0f;
                 else casRozv = 0.0f;
 
                 ComputeUpDownSurface(S, T, lod2);
@@ -3054,10 +3044,10 @@ namespace MFSpheres
             }
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // vykreslovanie celej potahovej plochy
-        private void DrawSkinningSurface( List<Sphere> S, int lod1, int lod2)
+        private void DrawSkinningSurface(List<Sphere> S, int lod1, int lod2)
         {
             // ak je zvolena rozvetvena konstrukcia tak kreslime hornu/dolnu a bocnu cast
             if (rozvetvena.IsChecked == true || RozvetvenaHomotopia.IsChecked == true)
@@ -3074,7 +3064,7 @@ namespace MFSpheres
 
         #endregion
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         #region OVLADANIE UZIVATELSKEHO PROSTREDIA 
 
@@ -3084,12 +3074,12 @@ namespace MFSpheres
         //                                                     //
         /////////////////////////////////////////////////////////
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // vykreslovanie sceny
         private void GLControl_Paint(object sender, PaintEventArgs e)
         {
-            if(BielaFarba.IsChecked == true) GL.ClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+            if (BielaFarba.IsChecked == true) GL.ClearColor(1.0f, 1.0f, 1.0f, 1.0f);
             else GL.ClearColor(0.25f, 0.25f, 0.25f, 1.0f);
 
             // Modelview matica
@@ -3113,7 +3103,7 @@ namespace MFSpheres
                 Matrix4 matOrtho = Matrix4.CreateOrthographic(Dist * (float)glControl.Width / (float)glControl.Height, Dist, -10.0f, 10.0f);//CreatePerspectiveFieldOfView(0.785f, (float)glControl.Width / (float)glControl.Height, 0.1f, 10.0f);
                 GL.LoadMatrix(ref matOrtho);
             }
-            
+
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             // vykreslenie suradnicovych osi a roviny z=0
@@ -3133,7 +3123,7 @@ namespace MFSpheres
             label8.Content = "Tau = " + Convert.ToString(Tau);
             label9.Content = "Lambda = " + Convert.ToString(Lambda);
             CasT.Content = "t = " + Convert.ToString(casT);
-            label10.Content = "reper v c1("+Convert.ToString((float)slider6.Value / 100.0f) +")";
+            label10.Content = "reper v c1(" + Convert.ToString((float)slider6.Value / 100.0f) + ")";
             label11.Content = "reper v dj(" + Convert.ToString((float)slider4.Value / 100.0f) + ")";
             label14.Content = (int)slider7.Value;
             label15.Content = (int)slider8.Value;
@@ -3159,13 +3149,13 @@ namespace MFSpheres
             glControl.SwapBuffers();
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // zobrazi info o sfere nad ktorou sa prave nachadza mys
         private void ShowInfoAboutPoint(Vector2 mouse)
         {
             Vector3 H = FindIntersection(Spheres, new Vector2(mouse.X, mouse.Y));
-            if(HitIndex != -1)
+            if (HitIndex != -1)
             {
                 if (ActiveSphere == -1) Cursor = System.Windows.Input.Cursors.Hand;
                 if (Keyboard.IsKeyDown(Key.M)) Cursor = System.Windows.Input.Cursors.SizeAll;
@@ -3193,7 +3183,7 @@ namespace MFSpheres
             HitIndex = -1;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private void GLControl_MouseDown(object sender, System.Windows.Forms.MouseEventArgs e)
         {
@@ -3254,7 +3244,7 @@ namespace MFSpheres
                 else if (Spheres.Count > 1 && ShowTubularNormals.IsChecked == true)
                 {
                     HitPoint = FindIntersection(Spheres, Normals, 0.05f, new Vector2(e.X, e.Y));
-                    if(HitNormal != -1)
+                    if (HitNormal != -1)
                     {
                         CreatingSphere = false;
                         HitIndex = -1;
@@ -3267,7 +3257,7 @@ namespace MFSpheres
                 if (CreatingSphere)
                 {
                     Spheres.Add(new Sphere(center, 0.1f, diffuse));
-                    ComputeTubularNormals(); 
+                    ComputeTubularNormals();
                     Samples.Add(new Vector3[120, 120]);
                     SamplesUpDown.Add(new Vector3[41, 41, 41]);
                     RightX = e.X;
@@ -3275,12 +3265,12 @@ namespace MFSpheres
                 }
                 if (checkBox7.IsChecked == true) ComputeSkinningSurface(Spheres, Lod1, Lod2);
             }
-           
+
             // prekresli scenu
             glControl.Invalidate();
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private void GLControl_MouseMove(object sender, System.Windows.Forms.MouseEventArgs e)
         {
@@ -3331,7 +3321,7 @@ namespace MFSpheres
                 RightY = e.Y;
                 RightX = e.X;
             }
-            else if(ActiveSphere != -1)
+            else if (ActiveSphere != -1)
             {
                 CreatingSphere = false;
                 Vector3 start, end;
@@ -3373,7 +3363,7 @@ namespace MFSpheres
                 RightY = e.Y;
                 RightX = e.X;
             }
-            else if(HitNormal != -1)
+            else if (HitNormal != -1)
             {
                 CreatingSphere = false;
                 ActiveSphere = -1;
@@ -3416,7 +3406,7 @@ namespace MFSpheres
             glControl.Invalidate();
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private void GLControl_MouseUp(object sender, System.Windows.Forms.MouseEventArgs e)
         {
@@ -3432,8 +3422,8 @@ namespace MFSpheres
             }
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
-        
+        //-----------------------------------------------------------------------------------------------------------------------
+
         // pri dvojkliknuti mazeme oznacenu sferu S[i], jej prislusny vektor n[i] a vzorkovacie body
         private void GLControl_MouseDoubleClick(object sender, System.Windows.Forms.MouseEventArgs e)
         {
@@ -3455,8 +3445,8 @@ namespace MFSpheres
             }
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
-        
+        //-----------------------------------------------------------------------------------------------------------------------
+
         // zabezpeci zoomovanie
         private void GLControl_MouseWheel(object sender, System.Windows.Forms.MouseEventArgs e)
         {
@@ -3466,8 +3456,8 @@ namespace MFSpheres
             glControl.Invalidate();
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
-        
+        //-----------------------------------------------------------------------------------------------------------------------
+
         // zabezpeci pohlady zhora a zbokov
         private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
@@ -3486,8 +3476,8 @@ namespace MFSpheres
             // prekresli scenu z noveho pohladu
             glControl.Invalidate();
         }
-        
-//-----------------------------------------------------------------------------------------------------------------------
+
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private void rozvetvena_Checked(object sender, RoutedEventArgs e)
         {
@@ -3499,7 +3489,7 @@ namespace MFSpheres
             glControl.Invalidate();
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private void tubularna_Checked(object sender, RoutedEventArgs e)
         {
@@ -3516,7 +3506,7 @@ namespace MFSpheres
             glControl.Invalidate();
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private void RozvetvenaHomotopia_Checked(object sender, RoutedEventArgs e)
         {
@@ -3538,21 +3528,21 @@ namespace MFSpheres
             glControl.Invalidate();
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private void RozvetvenaHomotopia_Unchecked(object sender, RoutedEventArgs e)
         {
             Homotopy = false;
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private void Grid_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             GL.Viewport(0, 0, glControl.Width, glControl.Height);
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private void slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
@@ -3563,7 +3553,7 @@ namespace MFSpheres
             glControl.Invalidate();
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private void slider1_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
@@ -3573,7 +3563,7 @@ namespace MFSpheres
             glControl.Invalidate();
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private void slider2_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
@@ -3592,7 +3582,7 @@ namespace MFSpheres
             glControl.Invalidate();
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private void slider3_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
@@ -3609,7 +3599,7 @@ namespace MFSpheres
             glControl.Invalidate();
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private void tau_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
@@ -3626,7 +3616,7 @@ namespace MFSpheres
 
             glControl.Invalidate();
         }
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private void ModifShep_Checked(object sender, RoutedEventArgs e)
         {
@@ -3680,14 +3670,14 @@ namespace MFSpheres
             glControl.Invalidate();
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private void slider6_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             glControl.Invalidate();
         }
-    
-//-----------------------------------------------------------------------------------------------------------------------
+
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private void slider5_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
@@ -3697,21 +3687,21 @@ namespace MFSpheres
             glControl.Invalidate();
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private void checkBox_Checked(object sender, RoutedEventArgs e)
         {
             glControl.Invalidate();
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private void checkBox_Unchecked(object sender, RoutedEventArgs e)
         {
             glControl.Invalidate();
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private void checkBox7_Checked(object sender, RoutedEventArgs e)
         {
@@ -3721,7 +3711,7 @@ namespace MFSpheres
             glControl.Invalidate();
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private void checkBox7_Unchecked(object sender, RoutedEventArgs e)
         {
@@ -3730,14 +3720,14 @@ namespace MFSpheres
             glControl.Invalidate();
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         private void ShowTubularNormals_Checked(object sender, RoutedEventArgs e)
         {
             glControl.Invalidate();
         }
 
-//-----------------------------------------------------------------------------------------------------------------------
+        //-----------------------------------------------------------------------------------------------------------------------
 
         // vymaze sfery, normaly a vsetky vzorkovacie body
         private void button_Click(object sender, RoutedEventArgs e)
