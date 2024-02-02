@@ -11,7 +11,6 @@ using OpenTK;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
 
-
 namespace MFSpheres
 {
     /// <summary>
@@ -37,9 +36,10 @@ namespace MFSpheres
 
         GLControl glControl;
 
-        float eps = 0.00001f;
+        public static float eps = 0.00001f;
 
-        float deltaZ = 0.01f;
+        float step = 0.01f;
+        public static Vector3 e3 = new Vector3(0, 0, 1);
 
         // parametre na ovladanie kamery
         float Dist, Phi, Theta, dPhi, dTheta;
@@ -57,8 +57,14 @@ namespace MFSpheres
         // zoznam sfer ktore modifikuje pouzivatel
         List<Sphere> Spheres = new List<Sphere>();
 
+        // demo
+        Dictionary<int, List<Sphere>> SpheresBySideId = new Dictionary<int, List<Sphere>>();
+        Dictionary<int, BranchedSurface> BranchedSurfacesBySideId = new Dictionary<int, BranchedSurface>();
+        Dictionary<Tuple<int, int>, SideSurface> SideSurfacesByBranchedPairs = new Dictionary<Tuple<int, int>, SideSurface>();
+        bool IsDemo = true;
+
         // hodnoty pouzite vo vahovych funkciach
-        int Eta;
+        public static int Eta;
         float Delta;
 
         // ked budeme vytvarat novu sferu
@@ -68,7 +74,7 @@ namespace MFSpheres
         bool ShowSurface = false;
 
         // vzorkovacie body na jednotlivych segmentoch potahovej plochy
-        int Lod1, Lod2;
+        public int Lod1, Lod2;
         List<Vector3[,,]> SamplesUp = new List<Vector3[,,]>();
         List<Vector3[,,]> SamplesDown = new List<Vector3[,,]>();
         List<Vector3[,]> Samples = new List<Vector3[,]>();
@@ -82,7 +88,7 @@ namespace MFSpheres
         // ked chceme zobrazit tubularnu plochu
         bool ShowTubular = false;
 
-        float Tau = 1.0f, Lambda = 1.0f;
+        public static float Tau = 1.0f, Lambda = 1.0f;
         public static float casT = 1.0f;
         public static bool Homotopy = true;
         public static float alpha = 1.0f;
@@ -165,28 +171,45 @@ namespace MFSpheres
             Lod1 = 40;
             Lod2 = 30;
 
-            _CreateExample1();
+            // _CreateExample1();
+            _CreateDodecahedron();
         }
 
         private void _CreateExample1()
         {
             _Clear();
 
-            Spheres.Add(new Sphere(new Vector3(-1, 0, 0), 0.1f));
+            Spheres.Add(new Sphere(Spheres.Count, new Vector3(-1, 0, 0), 0.1f));
             ComputeTubularNormals();
-            _AddSamples();
 
-            Spheres.Add(new Sphere(new Vector3(0, -1, 1), 0.3f));
+            Spheres.Add(new Sphere(Spheres.Count, new Vector3(0, -1, 1), 0.3f));
             ComputeTubularNormals();
-            _AddSamples();
 
-            Spheres.Add(new Sphere(new Vector3(1, 0, 0), 0.1f));
+            Spheres.Add(new Sphere(Spheres.Count, new Vector3(1, 0, 0), 0.1f));
             ComputeTubularNormals();
-            _AddSamples();
 
-            Spheres.Add(new Sphere(new Vector3(0, 1, 0.5f), 0.2f));
+            Spheres.Add(new Sphere(Spheres.Count, new Vector3(0, 1, 0.5f), 0.2f));
             ComputeTubularNormals();
-            _AddSamples();
+
+            _AddSamples(4);
+        }
+
+        private void _CreateDodecahedron()
+        {
+            _Clear();
+
+            _MakeDodecahedronSpheres(1.0f);
+
+            //// Size parameter: This is distance of each vector from origin
+            //float r = (float)Math.Sqrt(3);
+            //float sphereRadius = 0.1f;
+
+            //IList<Vector3> vertices = _MakeDodecahedron(r);
+            //foreach (Vector3 vertex in vertices)
+            //{
+            //    Spheres.Add(new Sphere(vertex, sphereRadius));
+            //}
+            //_AddSamples(Spheres.Count);
         }
 
         private void _Clear()
@@ -196,6 +219,345 @@ namespace MFSpheres
             SamplesDown.Clear();
             Samples.Clear();
             Normals.Clear();
+            SpheresBySideId.Clear();
+            BranchedSurfacesBySideId.Clear();
+            SideSurfacesByBranchedPairs.Clear();
+        }
+
+        /// <summary>
+        /// Generates a list of vertices (in arbitrary order) for a tetrahedron centered on the origin.
+        /// </summary>
+        /// <param name="r">The distance of each vertex from origin.</param>
+        /// <returns></returns>
+        private static IList<Vector3> _MakeDodecahedron(float r)
+        {
+            // Calculate constants that will be used to generate vertices
+            float phi = (float)(Math.Sqrt(5) - 1) / 2; // The golden ratio
+
+            float a = (float)(1 / Math.Sqrt(3));
+            float b = a / phi;
+            float c = a * phi;
+
+            // Generate each vertex
+            List<Vector3> vertices = new List<Vector3>();
+            foreach (float i in new[] { -1.0f, 1.0f })
+            {
+                foreach (float j in new[] { -1.0f, 1.0f })
+                {
+                    vertices.Add(new Vector3(
+                                        0,
+                                        i * c * r,
+                                        j * b * r));
+                    vertices.Add(new Vector3(
+                                        i * c * r,
+                                        j * b * r,
+                                        0));
+                    vertices.Add(new Vector3(
+                                        i * b * r,
+                                        0,
+                                        j * c * r));
+
+                    foreach (float k in new[] { -1.0f, 1.0f })
+                        vertices.Add(new Vector3(
+                                            i * a * r,
+                                            j * a * r,
+                                            k * a * r));
+                }
+            }
+            return vertices;
+        }
+
+        // Return the vertices for an dodecahedron.
+        // http://www.csharphelper.com/howtos/howto_wpf_3d_platonic_dodecahedron.html
+        private void _MakeDodecahedronSpheres(float side_length)
+        {
+            _Clear();
+
+            // Value t1 is actually never used.
+            float s = side_length;
+            //double t1 = 2.0f * (float)Math.PI / 5.0f;
+            float t2 = (float)Math.PI / 10.0f;
+            float t3 = 3.0f * (float)Math.PI / 10.0f;
+            float t4 = (float)Math.PI / 5.0f;
+            float d1 = s / 2.0f / (float)Math.Sin(t4);
+            float d2 = d1 * (float)Math.Cos(t4);
+            float d3 = d1 * (float)Math.Cos(t2);
+            float d4 = d1 * (float)Math.Sin(t2);
+            float Fx =
+                (s * s - (2.0f * d3) * (2.0f * d3) -
+                    (d1 * d1 - d3 * d3 - d4 * d4)) /
+                        (2.0f * (d4 - d1));
+            float d5 = (float)Math.Sqrt(0.5f *
+                (s * s + (2.0f * d3) * (2.0f * d3) -
+                    (d1 - Fx) * (d1 - Fx) -
+                        (d4 - Fx) * (d4 - Fx) - d3 * d3));
+            float Fy = (Fx * Fx - d1 * d1 - d5 * d5) / (2.0f * d5);
+            float Ay = d5 + Fy;
+
+            Vector3 A = new Vector3(d1, Ay, 0);
+            Vector3 B = new Vector3(d4, Ay, d3);
+            Vector3 C = new Vector3(-d2, Ay, s / 2);
+            Vector3 D = new Vector3(-d2, Ay, -s / 2);
+            Vector3 E = new Vector3(d4, Ay, -d3);
+            Vector3 F = new Vector3(Fx, Fy, 0);
+            Vector3 G = new Vector3(Fx * (float)Math.Sin(t2), Fy,
+                Fx * (float)Math.Cos(t2));
+            Vector3 H = new Vector3(-Fx * (float)Math.Sin(t3), Fy,
+                Fx * (float)Math.Cos(t3));
+            Vector3 I = new Vector3(-Fx * (float)Math.Sin(t3), Fy,
+                -Fx * (float)Math.Cos(t3));
+            Vector3 J = new Vector3(Fx * (float)Math.Sin(t2), Fy,
+                -Fx * (float)Math.Cos(t2));
+            Vector3 K = new Vector3(Fx * (float)Math.Sin(t3), -Fy,
+                Fx * (float)Math.Cos(t3));
+            Vector3 L = new Vector3(-Fx * (float)Math.Sin(t2), -Fy,
+                Fx * (float)Math.Cos(t2));
+            Vector3 M = new Vector3(-Fx, -Fy, 0);
+            Vector3 N = new Vector3(-Fx * (float)Math.Sin(t2), -Fy,
+                -Fx * (float)Math.Cos(t2));
+            Vector3 O = new Vector3(Fx * (float)Math.Sin(t3), -Fy,
+                -Fx * (float)Math.Cos(t3));
+            Vector3 P = new Vector3(d2, -Ay, s / 2);
+            Vector3 Q = new Vector3(-d4, -Ay, d3);
+            Vector3 R = new Vector3(-d1, -Ay, 0);
+            Vector3 S = new Vector3(-d4, -Ay, -d3);
+            Vector3 T = new Vector3(d2, -Ay, -s / 2);
+
+            float radius = 0.1f;
+            Dictionary<string, int> ids = new Dictionary<string, int>()
+            {
+                { "A", 0 },
+                { "B", 1 },
+                { "C", 2 },
+                { "D", 3 },
+                { "E", 4 },
+                { "F", 5 },
+                { "G", 6 },
+                { "H", 7 },
+                { "I", 8 },
+                { "J", 9 },
+                { "K", 10 },
+                { "L", 11 },
+                { "M", 12 },
+                { "N", 13 },
+                { "O", 14 },
+                { "P", 15 },
+                { "Q", 16 },
+                { "R", 17 },
+                { "S", 18 },
+                { "T", 19 }
+            };
+
+            Spheres.Add(new Sphere(Spheres.Count, A, radius));
+            Spheres.Add(new Sphere(Spheres.Count, B, radius));
+            Spheres.Add(new Sphere(Spheres.Count, C, radius));
+            Spheres.Add(new Sphere(Spheres.Count, D, radius));
+            Spheres.Add(new Sphere(Spheres.Count, E, radius));
+            Spheres.Add(new Sphere(Spheres.Count, F, radius));
+            Spheres.Add(new Sphere(Spheres.Count, G, radius));
+            Spheres.Add(new Sphere(Spheres.Count, H, radius));
+            Spheres.Add(new Sphere(Spheres.Count, I, radius));
+            Spheres.Add(new Sphere(Spheres.Count, J, radius));
+            Spheres.Add(new Sphere(Spheres.Count, K, radius));
+            Spheres.Add(new Sphere(Spheres.Count, L, radius));
+            Spheres.Add(new Sphere(Spheres.Count, M, radius));
+            Spheres.Add(new Sphere(Spheres.Count, N, radius));
+            Spheres.Add(new Sphere(Spheres.Count, O, radius));
+            Spheres.Add(new Sphere(Spheres.Count, P, radius));
+            Spheres.Add(new Sphere(Spheres.Count, Q, radius));
+            Spheres.Add(new Sphere(Spheres.Count, R, radius));
+            Spheres.Add(new Sphere(Spheres.Count, S, radius));
+            Spheres.Add(new Sphere(Spheres.Count, T, radius));
+
+            Sphere sphereRef = _GetRefSphere(Spheres);
+
+            int id = 0;
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["E"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["D"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["C"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["B"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["A"]]);
+            BranchedSurfacesBySideId.Add(id, new BranchedSurface(this, id, SpheresBySideId[id], sphereRef, _GetMatrix(SpheresBySideId[id], e3, Math.PI)));
+            id++;
+
+            //-------------------------------------------------------------------------
+
+            // 1
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["K"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["F"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["A"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["B"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["G"]]);
+            BranchedSurfacesBySideId.Add(id, new BranchedSurface(this, id, SpheresBySideId[id], sphereRef, _GetMatrix(SpheresBySideId[id], e3, Math.PI)));
+            id++;
+
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["B"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["C"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["H"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["L"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["G"]]);
+            BranchedSurfacesBySideId.Add(id, new BranchedSurface(this, id, SpheresBySideId[id], sphereRef, _GetMatrix(SpheresBySideId[id], e3, Math.PI)));
+            id++;
+
+            // 3
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["M"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["H"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["C"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["D"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["I"]]);
+            BranchedSurfacesBySideId.Add(id, new BranchedSurface(this, id, SpheresBySideId[id], sphereRef, _GetMatrix(SpheresBySideId[id], e3, Math.PI)));
+            id++;
+
+            // 4
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["I"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["D"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["E"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["J"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["N"]]);
+            BranchedSurfacesBySideId.Add(id, new BranchedSurface(this, id, SpheresBySideId[id], sphereRef, _GetMatrix(SpheresBySideId[id], e3, Math.PI)));
+            id++;
+
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["J"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["E"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["A"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["F"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["O"]]);
+            BranchedSurfacesBySideId.Add(id, new BranchedSurface(this, id, SpheresBySideId[id], sphereRef, _GetMatrix(SpheresBySideId[id], e3, Math.PI)));
+            id++;
+
+            //-------------------------------------------------------------------------
+            // 6
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["K"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["P"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["T"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["O"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["F"]]);
+            BranchedSurfacesBySideId.Add(id, new BranchedSurface(this, id, SpheresBySideId[id], sphereRef, _GetMatrix(SpheresBySideId[id], e3, Math.PI)));
+            id++;
+
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["L"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["Q"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["P"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["K"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["G"]]);
+            BranchedSurfacesBySideId.Add(id, new BranchedSurface(this, id, SpheresBySideId[id], sphereRef, _GetMatrix(SpheresBySideId[id], e3, Math.PI)));
+            id++;
+
+            // 8
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["M"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["R"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["Q"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["L"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["H"]]);
+            BranchedSurfacesBySideId.Add(id, new BranchedSurface(this, id, SpheresBySideId[id], sphereRef, _GetMatrix(SpheresBySideId[id], e3, Math.PI)));
+            id++;
+
+            // 9
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["N"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["S"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["R"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["M"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["I"]]);
+            BranchedSurfacesBySideId.Add(id, new BranchedSurface(this, id, SpheresBySideId[id], sphereRef, _GetMatrix(SpheresBySideId[id], e3, Math.PI)));
+            id++;
+
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["O"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["T"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["S"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["N"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["J"]]);
+            BranchedSurfacesBySideId.Add(id, new BranchedSurface(this, id, SpheresBySideId[id], sphereRef, _GetMatrix(SpheresBySideId[id], e3, Math.PI)));
+            id++;
+
+            //----------------------------------------------------------------------------
+
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["S"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["T"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["P"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["Q"]]);
+            GetOrAdd(SpheresBySideId, id, _ => new List<Sphere>()).Add(Spheres[ids["R"]]);
+            BranchedSurfacesBySideId.Add(id, new BranchedSurface(this, id, SpheresBySideId[id], sphereRef, _GetMatrix(SpheresBySideId[id], e3, Math.PI)));
+
+            List<Tuple<int, int>> pairs = new List<Tuple<int, int>>()
+            {
+                new Tuple<int, int>(0, 1),
+                new Tuple<int, int>(0, 2),
+                new Tuple<int, int>(1, 2),
+                new Tuple<int, int>(0, 3),
+                new Tuple<int, int>(2, 3),
+                new Tuple<int, int>(0, 4),
+                new Tuple<int, int>(3, 4),
+                new Tuple<int, int>(5, 0),
+                new Tuple<int, int>(4, 5),
+                new Tuple<int, int>(1, 5),
+                new Tuple<int, int>(1, 6), // Tato ma naopak normaly
+                new Tuple<int, int>(5, 6),
+                new Tuple<int, int>(1, 7),
+                new Tuple<int, int>(2, 7),
+                new Tuple<int, int>(6, 7),
+                new Tuple<int, int>(2, 8),
+                new Tuple<int, int>(3, 8), // Tato ma naopak normaly
+                new Tuple<int, int>(7, 8),
+                new Tuple<int, int>(3, 9),
+                new Tuple<int, int>(4, 9), // Tato ma naopak normaly
+                new Tuple<int, int>(8, 9),
+                new Tuple<int, int>(4, 10),
+                new Tuple<int, int>(5, 10),
+                new Tuple<int, int>(10, 9),
+                new Tuple<int, int>(6, 10),
+                new Tuple<int, int>(6, 11),
+                new Tuple<int, int>(7, 11),
+                new Tuple<int, int>(8, 11),
+                new Tuple<int, int>(9, 11),
+                new Tuple<int, int>(10, 11)
+            };
+
+            foreach (var pair in pairs)
+            {
+                SideSurfacesByBranchedPairs.Add(pair, new SideSurface(this, SideSurfacesByBranchedPairs.Count, BranchedSurfacesBySideId[pair.Item1], BranchedSurfacesBySideId[pair.Item2]));
+            }
+
+            _AddSamples(Spheres.Count);
+        }
+
+        public static TV GetOrAdd<TK, TV>(IDictionary<TK, TV> source, TK key, Func<TK, TV> addFunc)
+        {
+            if (source.TryGetValue(key, out TV value))
+            {
+                return value;
+            }
+            source[key] = value = addFunc(key);
+            return value;
+        }
+
+        private Matrix4 _GetMatrix(List<Sphere> spheres, Vector3 direction, double angleOffset = 0.0)
+        {
+            Vector3 direction1 = spheres[1].Center - spheres[2].Center;
+            Vector3 direction2 = spheres[3].Center - spheres[2].Center;
+
+            Vector3 normal = Vector3.Cross(direction1, direction2).Normalized();
+            float angle = (float)(angleOffset + Math.Acos(Vector3.Dot(normal, direction) / (normal.Length * direction.Length)));
+
+            // Based on http://www.gamedev.net/reference/articles/article1199.asp
+
+            Vector3 axis = Vector3.Cross(normal, direction).Normalized();
+            float c = (float)Math.Cos(angle);
+            float s = (float)Math.Sin(angle);
+            float t = 1 - c;
+            float x = axis.X, y = axis.Y, z = axis.Z;
+            float tx = t * x, ty = t * y;
+
+            Matrix4 matrix = new Matrix4(
+                tx * x + c, tx * y - s * z, tx * z + s * y, 0,
+                tx * y + s * z, ty * y + c, ty * z - s * x, 0,
+                tx * z - s * y, ty * z + s * x, t * z * z + c, 0,
+                0, 0, 0, 1
+            );
+
+            Vector3 point = (matrix * new Vector4(spheres[0].Center.X, spheres[0].Center.Y, spheres[0].Center.Z, 1)).Xyz;
+            matrix.Row2.W = -point.Z;
+
+            return matrix;
         }
 
         #endregion
@@ -254,7 +616,7 @@ namespace MFSpheres
         //-----------------------------------------------------------------------------------------------------------------------
 
         // Kroneckerova delta funkcia
-        private int KDelta(int i, int j)
+        public static int KDelta(int i, int j)
         {
             if (i == j) return 1;
             else return 0;
@@ -263,7 +625,7 @@ namespace MFSpheres
         //-----------------------------------------------------------------------------------------------------------------------
 
         // i-ta vahova funkcia v bode X pri danej mnozine sfer S
-        private float w(int i, Vector2 X, List<Sphere> S, float delta)
+        private static float w(int i, Vector2 X, List<Sphere> S, float delta)
         {
             for (int j = 0; j < S.Count; j++)
             {
@@ -281,7 +643,7 @@ namespace MFSpheres
         //-----------------------------------------------------------------------------------------------------------------------
 
         // funkcia v citateli i-tej vahovej funkcie, ktora sluzi na stabilnejsie vyjadrenie vahovych funkcii
-        private float p(int i, Vector2 X, List<Sphere> S, float delta)
+        private static float p(int i, Vector2 X, List<Sphere> S, float delta)
         {
             float pSum = 1.0f;
             for (int j = 0; j < i; j++)
@@ -442,7 +804,7 @@ namespace MFSpheres
         //-----------------------------------------------------------------------------------------------------------------------
 
         // Hermitove kubicke polynomy
-        private float H3(int i, float x)
+        public static float H3(int i, float x)
         {
             float t = 0.0f;
             switch (i)
@@ -469,7 +831,7 @@ namespace MFSpheres
         //-----------------------------------------------------------------------------------------------------------------------
 
         // derivacia Hermitovych kubickych polynomov
-        private float dH3(int i, float x)
+        public static float dH3(int i, float x)
         {
             float t = 0.0f;
             switch (i)
@@ -495,54 +857,54 @@ namespace MFSpheres
 
         //-----------------------------------------------------------------------------------------------------------------------
 
-        private List<Vector3> CheckKonvexAt(int i, int j, List<Sphere> S)
+        private static List<Vector3> CheckKonvexAt(int i, int j, List<Sphere> S)
         {
             Vector3 t0 = new Vector3(), t1 = new Vector3();
             if (S.Count > 1)
             {
                 if (i >= 1 && i <= S.Count - 3)
                 {
-                    t0 = S[i + j].Center - S[i + j - 1].Center;
-                    t1 = S[i + j + 1].Center - S[i + j].Center;
+                    t0 = S[i + j].CenterInTime(0) - S[i + j - 1].CenterInTime(0);
+                    t1 = S[i + j + 1].CenterInTime(0) - S[i + j].CenterInTime(0);
                 }
                 else if (i == 0)
                 {
                     if (j == 0)
                     {
-                        t0 = S[0].Center - S[S.Count - 1].Center;
-                        t1 = S[1].Center - S[0].Center;
+                        t0 = S[0].CenterInTime(0) - S[S.Count - 1].CenterInTime(0);
+                        t1 = S[1].CenterInTime(0) - S[0].CenterInTime(0);
                     }
                     else
                     {
-                        t0 = S[1].Center - S[0].Center;
-                        if (S.Count > 2) t1 = S[2].Center - S[1].Center;
-                        else t1 = S[0].Center - S[1].Center;
+                        t0 = S[1].CenterInTime(0) - S[0].CenterInTime(0);
+                        if (S.Count > 2) t1 = S[2].CenterInTime(0) - S[1].CenterInTime(0);
+                        else t1 = S[0].CenterInTime(0) - S[1].CenterInTime(0);
                     }
                 }
                 else if (i == S.Count - 2)
                 {
                     if (j == 0)
                     {
-                        t0 = S[S.Count - 2].Center - S[S.Count - 3].Center;
-                        t1 = S[S.Count - 1].Center - S[S.Count - 2].Center;
+                        t0 = S[S.Count - 2].CenterInTime(0) - S[S.Count - 3].CenterInTime(0);
+                        t1 = S[S.Count - 1].CenterInTime(0) - S[S.Count - 2].CenterInTime(0);
                     }
                     else
                     {
-                        t0 = S[S.Count - 1].Center - S[S.Count - 2].Center;
-                        t1 = S[0].Center - S[S.Count - 1].Center;
+                        t0 = S[S.Count - 1].CenterInTime(0) - S[S.Count - 2].CenterInTime(0);
+                        t1 = S[0].CenterInTime(0) - S[S.Count - 1].CenterInTime(0);
                     }
                 }
                 else
                 {
                     if (j == 0)
                     {
-                        t0 = S[S.Count - 1].Center - S[S.Count - 2].Center;
-                        t1 = S[0].Center - S[S.Count - 1].Center;
+                        t0 = S[S.Count - 1].CenterInTime(0) - S[S.Count - 2].CenterInTime(0);
+                        t1 = S[0].CenterInTime(0) - S[S.Count - 1].CenterInTime(0);
                     }
                     else
                     {
-                        t0 = S[0].Center - S[S.Count - 1].Center;
-                        t1 = S[1].Center - S[0].Center;
+                        t0 = S[0].CenterInTime(0) - S[S.Count - 1].CenterInTime(0);
+                        t1 = S[1].CenterInTime(0) - S[0].CenterInTime(0);
                     }
                 }
 
@@ -553,19 +915,23 @@ namespace MFSpheres
                     t1 = s;
                 }
             }
+
+            t0.Z = 0;
+            t1.Z = 0;
+
             return new List<Vector3> { t0, t1 };
         }
 
         //-----------------------------------------------------------------------------------------------------------------------
 
-        private Vector3 HermiteCurve(float u, Vector3 A, Vector3 v0, Vector3 v1, Vector3 B)
+        public static Vector3 HermiteCurve(float u, Vector3 A, Vector3 v0, Vector3 v1, Vector3 B)
         {
             return H3(0, u) * A + H3(1, u) * v0 + H3(2, u) * v1 + H3(3, u) * B;
         }
 
         //-----------------------------------------------------------------------------------------------------------------------
 
-        private Vector3 dHermiteCurve(float u, Vector3 A, Vector3 v0, Vector3 v1, Vector3 B)
+        public static Vector3 dHermiteCurve(float u, Vector3 A, Vector3 v0, Vector3 v1, Vector3 B)
         {
             return dH3(0, u) * A + dH3(1, u) * v0 + dH3(2, u) * v1 + dH3(3, u) * B;
         }
@@ -589,8 +955,8 @@ namespace MFSpheres
             List<Vector3> n0 = CheckKonvexAt(i, 0, S);
             List<Vector3> n1 = CheckKonvexAt(i, 1, S);
 
-            if (i < S.Count - 1) X = HermiteCurve(u, S[i].Center, n0[1], n1[0], S[i + 1].Center);  //X = Spheres[i].Center + u * (Spheres[i + 1].Center - Spheres[i].Center);
-            else X = HermiteCurve(u, S[i].Center, n0[1], n1[0], S[0].Center);  //X = Spheres[i].Center + u * (Spheres[0].Center - Spheres[i].Center);
+            if (i < S.Count - 1) X = HermiteCurve(u, S[i].CenterInTime(0), n0[1], n1[0], S[i + 1].CenterInTime(0));  //X = Spheres[i].Center + u * (Spheres[i + 1].Center - Spheres[i].Center);
+            else X = HermiteCurve(u, S[i].CenterInTime(0), n0[1], n1[0], S[0].CenterInTime(0));  //X = Spheres[i].Center + u * (Spheres[0].Center - Spheres[i].Center);
             return SurfacePoint(X.Xy, S, true);
         }
 
@@ -660,8 +1026,8 @@ namespace MFSpheres
             Vector2 s, n;
             Vector3 ti3;
 
-            if (i < S.Count - 1) C1 = new Sphere(S[i + 1].Center, S[i + 1].R);
-            else C1 = new Sphere(S[0].Center, S[0].R);
+            if (i < S.Count - 1) C1 = new Sphere(S[i + 1].Id, S[i + 1].Center, S[i + 1].R);
+            else C1 = new Sphere(S[0].Id, S[0].Center, S[0].R);
             s = C1.Center.Xy - S[i].Center.Xy;
 
             if (i < S.Count - 2) ti3 = S[i + 2].Center - S[i + 1].Center;
@@ -701,8 +1067,8 @@ namespace MFSpheres
             Vector2 s, n;
             Vector3 ti3;
 
-            if (i < S.Count - 1) C1 = new Sphere(S[i + 1].Center, S[i + 1].R);
-            else C1 = new Sphere(S[0].Center, S[0].R);
+            if (i < S.Count - 1) C1 = new Sphere(S[i + 1].Id, S[i + 1].Center, S[i + 1].R);
+            else C1 = new Sphere(S[0].Id, S[0].Center, S[0].R);
             s = C1.Center.Xy - S[i].Center.Xy;
 
             if (i < S.Count - 2) ti3 = S[i + 2].Center - S[i + 1].Center;
@@ -735,8 +1101,8 @@ namespace MFSpheres
             List<Vector3> n0 = CheckKonvexAt(i, 0, S);
             List<Vector3> n1 = CheckKonvexAt(i, 1, S);
 
-            if (i < S.Count - 1) X = HermiteCurve(u, S[i].Center, n0[1], n1[0], S[i + 1].Center);
-            else X = HermiteCurve(u, S[i].Center, n0[1], n1[0], S[0].Center);
+            if (i < S.Count - 1) X = HermiteCurve(u, S[i].CenterInTime(0), n0[1], n1[0], S[i + 1].CenterInTime(0));
+            else X = HermiteCurve(u, S[i].CenterInTime(0), n0[1], n1[0], S[0].CenterInTime(0));
 
             /*if (i < Spheres.Count - 1)
             {
@@ -867,13 +1233,13 @@ namespace MFSpheres
             if (i < S.Count - 1)
             {
                 S1 = S[i + 1];
-                n = (S[i + 1].Center - S[i].Center).Normalized();
+                n = (S[i + 1].CenterInTime(0) - S[i].CenterInTime(0)).Normalized();
                 //r2 = (float)Math.Exp(Spheres[i + 1].R);
             }
             else
             {
                 S1 = S[0];
-                n = (S[0].Center - S[i].Center).Normalized();
+                n = (S[0].CenterInTime(0) - S[i].CenterInTime(0)).Normalized();
                 //r2 = (float)Math.Exp(Spheres[0].R);
             }
 
@@ -1814,11 +2180,11 @@ namespace MFSpheres
             float eps = 0.00000009f;
             for (int j = 0; j < Spheres.Count; j++)
             {
-                Vector2 C0 = Spheres[j].Center.Xy;
+                Vector2 C0 = Spheres[j].CenterInTime(0).Xy;
                 Vector2 C1;
                 float d, t = -1;
-                if (j < Spheres.Count - 1) C1 = Spheres[j + 1].Center.Xy; // d = det(Spheres[i + 1].Center.Xy - Spheres[i].Center.Xy, X - Spheres[i].Center.Xy);
-                else C1 = Spheres[0].Center.Xy; //d = det(Spheres[0].Center.Xy - Spheres[i].Center.Xy, X - Spheres[i].Center.Xy);
+                if (j < Spheres.Count - 1) C1 = Spheres[j + 1].CenterInTime(0).Xy; // d = det(Spheres[i + 1].Center.Xy - Spheres[i].Center.Xy, X - Spheres[i].Center.Xy);
+                else C1 = Spheres[0].CenterInTime(0).Xy; //d = det(Spheres[0].Center.Xy - Spheres[i].Center.Xy, X - Spheres[i].Center.Xy);
 
                 d = det(C1 - C0, X - C0);
 
@@ -1839,10 +2205,10 @@ namespace MFSpheres
             float Sum = 0.0f;
             for (int j = 0; j < Spheres.Count; j++)
             {
-                Sum += (TanAlfaPol(j - 1, u, v) + TanAlfaPol(j, u, v)) / (Spheres[j].Center.Xy - X).Length;
+                Sum += (TanAlfaPol(j - 1, u, v) + TanAlfaPol(j, u, v)) / (Spheres[j].CenterInTime(0).Xy - X).Length;
             }
 
-            return (TanAlfaPol(i - 1, u, v) + TanAlfaPol(i, u, v)) / ((Spheres[i].Center.Xy - X).Length * Sum);
+            return (TanAlfaPol(i - 1, u, v) + TanAlfaPol(i, u, v)) / ((Spheres[i].CenterInTime(0).Xy - X).Length * Sum);
         }
 
         private float TanAlfaPol(int i, float u, float v)
@@ -1850,16 +2216,16 @@ namespace MFSpheres
             Vector2 X = new Vector2(u, v);
             Vector2 v0;
             Vector2 v1;
-            if (i < 0) v0 = Spheres[Spheres.Count - 1].Center.Xy - X;
-            else v0 = Spheres[i].Center.Xy - X;
+            if (i < 0) v0 = Spheres[Spheres.Count - 1].CenterInTime(0).Xy - X;
+            else v0 = Spheres[i].CenterInTime(0).Xy - X;
 
-            if (i < Spheres.Count - 1) v1 = Spheres[i + 1].Center.Xy - X;
-            else v1 = Spheres[0].Center.Xy - X;
+            if (i < Spheres.Count - 1) v1 = Spheres[i + 1].CenterInTime(0).Xy - X;
+            else v1 = Spheres[0].CenterInTime(0).Xy - X;
 
             return det(v0, v1) / (v0.Length * v1.Length + Vector2.Dot(v0, v1));
         }
 
-        private float det(Vector2 X, Vector2 Y)
+        public static float det(Vector2 X, Vector2 Y)
         {
             return X.X * Y.Y - X.Y * Y.X;
         }
@@ -1880,6 +2246,29 @@ namespace MFSpheres
             }
             if (k != -1) Pref = new Vector3(S[k].Center.X, S[k].Center.Y, rMax);
             rRef = rMax;
+        }
+
+        private Sphere _GetRefSphere(List<Sphere> S, bool min = false)
+        {
+            float rMin = float.MaxValue;
+            float rMax = float.MinValue;
+            int k = -1;
+
+            for (int i = 0; i < S.Count; i++)
+            {
+                if (min && rMin > S[i].R)
+                {
+                    rMin = S[i].R;
+                    k = i;
+                }
+                else if (rMax < S[i].R)
+                {
+                    rMax = S[i].R;
+                    k = i;
+                }
+            }
+            if (k != -1) return S[k];
+            return null;
         }
 
         private Vector3 P(Vector2 X, Vector3 pRef)
@@ -2116,13 +2505,13 @@ namespace MFSpheres
 
             if (k < S.Count - 1)
             {
-                X = HermiteCurve(u, S[k].Center, n0[1], n1[0], S[k + 1].Center);
-                s = dHermiteCurve(u, S[k].Center, n0[1], n1[0], S[k + 1].Center);
+                X = HermiteCurve(u, S[k].CenterInTime(0), n0[1], n1[0], S[k + 1].CenterInTime(0));
+                s = dHermiteCurve(u, S[k].CenterInTime(0), n0[1], n1[0], S[k + 1].CenterInTime(0));
             }
             else
             {
-                X = HermiteCurve(u, S[k].Center, n0[1], n1[0], S[0].Center);
-                s = dHermiteCurve(u, S[k].Center, n0[1], n1[0], S[0].Center);
+                X = HermiteCurve(u, S[k].CenterInTime(0), n0[1], n1[0], S[0].CenterInTime(0));
+                s = dHermiteCurve(u, S[k].CenterInTime(0), n0[1], n1[0], S[0].CenterInTime(0));
             }
 
             /*if (k < Spheres.Count - 1) s = Spheres[k + 1].Center - Spheres[k].Center;
@@ -2141,13 +2530,13 @@ namespace MFSpheres
 
             if (k < S.Count - 1)
             {
-                X = HermiteCurve(u, S[k].Center, n0[1], n1[0], S[k + 1].Center);
-                s = dHermiteCurve(u, S[k].Center, n0[1], n1[0], S[k + 1].Center);
+                X = HermiteCurve(u, S[k].CenterInTime(0), n0[1], n1[0], S[k + 1].CenterInTime(0));
+                s = dHermiteCurve(u, S[k].CenterInTime(0), n0[1], n1[0], S[k + 1].CenterInTime(0));
             }
             else
             {
-                X = HermiteCurve(u, S[k].Center, n0[1], n1[0], S[0].Center);
-                s = dHermiteCurve(u, S[k].Center, n0[1], n1[0], S[0].Center);
+                X = HermiteCurve(u, S[k].CenterInTime(0), n0[1], n1[0], S[0].CenterInTime(0));
+                s = dHermiteCurve(u, S[k].CenterInTime(0), n0[1], n1[0], S[0].CenterInTime(0));
             }
 
             /*if (k < Spheres.Count - 1) s = Spheres[k + 1].Center - Spheres[k].Center;
@@ -2176,8 +2565,8 @@ namespace MFSpheres
             List<Vector3> n0 = CheckKonvexAt(i, 0, S);
             List<Vector3> n1 = CheckKonvexAt(i, 1, S);
 
-            if (i < S.Count - 1) X = HermiteCurve(u, S[i].Center, n0[1], n1[0], S[i + 1].Center); //X = Spheres[i].Center + u * (Spheres[i + 1].Center - Spheres[i].Center);
-            else X = HermiteCurve(u, S[i].Center, n0[1], n1[0], S[0].Center); //X = Spheres[i].Center + u * (Spheres[0].Center - Spheres[i].Center);
+            if (i < S.Count - 1) X = HermiteCurve(u, S[i].CenterInTime(0), n0[1], n1[0], S[i + 1].CenterInTime(0)); //X = Spheres[i].Center + u * (Spheres[i + 1].Center - Spheres[i].Center);
+            else X = HermiteCurve(u, S[i].CenterInTime(0), n0[1], n1[0], S[0].CenterInTime(0)); //X = Spheres[i].Center + u * (Spheres[0].Center - Spheres[i].Center);
             return SDown(X.X, X.Y, t, S, withTranslation);
         }
 
@@ -2190,8 +2579,8 @@ namespace MFSpheres
             List<Vector3> n0 = CheckKonvexAt(i, 0, S);
             List<Vector3> n1 = CheckKonvexAt(i, 1, S);
 
-            if (i < S.Count - 1) X = HermiteCurve(u, S[i].Center, n0[1], n1[0], S[i + 1].Center); //X = Spheres[i].Center + u * (Spheres[i + 1].Center - Spheres[i].Center);
-            else X = HermiteCurve(u, S[i].Center, n0[1], n1[0], S[0].Center); //X = Spheres[i].Center + u * (Spheres[0].Center - Spheres[i].Center);
+            if (i < S.Count - 1) X = HermiteCurve(u, S[i].CenterInTime(0), n0[1], n1[0], S[i + 1].CenterInTime(0)); //X = Spheres[i].Center + u * (Spheres[i + 1].Center - Spheres[i].Center);
+            else X = HermiteCurve(u, S[i].CenterInTime(0), n0[1], n1[0], S[0].CenterInTime(0)); //X = Spheres[i].Center + u * (Spheres[0].Center - Spheres[i].Center);
             return SUp(X.X, X.Y, t, S, withTranslation);
         }
 
@@ -2205,8 +2594,8 @@ namespace MFSpheres
             Vector3 ti3;
             Vector2 s, n;
 
-            if (i < S.Count - 1) ti3 = S[i + 1].Center - S[i].Center;
-            else ti3 = S[0].Center - S[i].Center;
+            if (i < S.Count - 1) ti3 = S[i + 1].CenterInTime(0) - S[i].CenterInTime(0);
+            else ti3 = S[0].CenterInTime(0) - S[i].CenterInTime(0);
             n = ti3.Xy;
 
             if (i > 0) s = S[i].Center.Xy - S[i - 1].Center.Xy;
@@ -2233,8 +2622,8 @@ namespace MFSpheres
             Vector3 ti3;
             Vector2 s, n;
 
-            if (i < S.Count - 1) ti3 = S[i + 1].Center - S[i].Center;
-            else ti3 = S[0].Center - S[i].Center;
+            if (i < S.Count - 1) ti3 = S[i + 1].CenterInTime(0) - S[i].CenterInTime(0);
+            else ti3 = S[0].CenterInTime(0) - S[i].CenterInTime(0);
             n = ti3.Xy;
 
             if (i > 0) s = S[i].Center.Xy - S[i - 1].Center.Xy;
@@ -2263,8 +2652,8 @@ namespace MFSpheres
             Vector2 s, n;
             Vector3 ti3;
 
-            if (i < S.Count - 1) C1 = new Sphere(S[i + 1].Center, S[i + 1].R);
-            else C1 = new Sphere(S[0].Center, S[0].R);
+            if (i < S.Count - 1) C1 = new Sphere(S[i + 1].Id, S[i + 1].Center, S[i + 1].R);
+            else C1 = new Sphere(S[0].Id, S[0].Center, S[0].R);
             s = C1.Center.Xy - S[i].Center.Xy;
 
             if (i < S.Count - 2) ti3 = S[i + 2].Center - S[i + 1].Center;
@@ -2295,8 +2684,8 @@ namespace MFSpheres
             Vector2 s, n;
             Vector3 ti3;
 
-            if (i < S.Count - 1) C1 = new Sphere(S[i + 1].Center, S[i + 1].R);
-            else C1 = new Sphere(S[0].Center, S[0].R);
+            if (i < S.Count - 1) C1 = new Sphere(S[i + 1].Id, S[i + 1].Center, S[i + 1].R);
+            else C1 = new Sphere(S[0].Id, S[0].Center, S[0].R);
             s = C1.Center.Xy - S[i].Center.Xy;
 
             if (i < S.Count - 2) ti3 = S[i + 2].Center - S[i + 1].Center;
@@ -2330,8 +2719,8 @@ namespace MFSpheres
             List<Vector3> n0 = CheckKonvexAt(i, 0, S);
             List<Vector3> n1 = CheckKonvexAt(i, 1, S);
 
-            if (i < S.Count - 1) X = HermiteCurve(u, S[i].Center, n0[1], n1[0], S[i + 1].Center);
-            else X = HermiteCurve(u, S[i].Center, n0[1], n1[0], S[0].Center);
+            if (i < S.Count - 1) X = HermiteCurve(u, S[i].CenterInTime(0), n0[1], n1[0], S[i + 1].CenterInTime(0));
+            else X = HermiteCurve(u, S[i].CenterInTime(0), n0[1], n1[0], S[0].CenterInTime(0));
 
             /*if (i < Spheres.Count - 1)
             {
@@ -2676,7 +3065,7 @@ namespace MFSpheres
         //-----------------------------------------------------------------------------------------------------------------------
 
         // vypocet bodov hornej a dolnej casti potahovej plochy
-        private void ComputeUpDownSurface(List<Sphere> S, Vector3 T, int lod)
+        private void ComputeUpDownSurface(List<Sphere> S, Vector3 T, int lod, List<Vector3[,,]> samplesUp, List<Vector3[,,]> samplesDown)
         {
             Stopwatch stopWatch1 = new Stopwatch();
             Stopwatch stopWatch2 = new Stopwatch();
@@ -2689,10 +3078,10 @@ namespace MFSpheres
                 stopWatch1.Start();
                 for (int i = 0; i < S.Count; i++)
                 {
-                    Vector3 C0 = S[i].Center;
+                    Vector3 C0 = new Vector3(S[i].Center.X, S[i].Center.Y, 0.0f);
                     Vector3 C1;
-                    if (i != S.Count - 1) C1 = S[i + 1].Center;
-                    else C1 = S[0].Center;
+                    if (i != S.Count - 1) C1 = new Vector3(S[i + 1].Center.X, S[i + 1].Center.Y, 0.0f);
+                    else C1 = new Vector3(S[0].Center.X, S[0].Center.Y, 0.0f);
                     Vector3 X;
                     List<Vector3> n0 = CheckKonvexAt(i, 0, S);
                     List<Vector3> n1 = CheckKonvexAt(i, 1, S);
@@ -2709,8 +3098,8 @@ namespace MFSpheres
                                 t1 = (float)m / lod;
                                 t2 = (float)n / lod;
                                 t = C0 * t0 + C1 * t1 + T * t2;
-                                SamplesUp[i][l, m, n] = SUp(t.X, t.Y, casT, S, NonCoplanarSpheres);
-                                SamplesDown[i][l, m, n] = SDown(t.X, t.Y, casT, S, NonCoplanarSpheres);
+                                samplesUp[i][l, m, n] = SUp(t.X, t.Y, casT, S, NonCoplanarSpheres);
+                                samplesDown[i][l, m, n] = SDown(t.X, t.Y, casT, S, NonCoplanarSpheres);
                             }
                         }
                     }
@@ -2728,25 +3117,25 @@ namespace MFSpheres
                                 Vector3 c0 = C0 + (1.0f - t0) * (T - C0);
                                 Vector3 h = HermiteCurve(1.0f - t0, C0, n0[1], n1[0], C1);
                                 X = c0 * t2 / (t1 + t2) + h * t1 / (t1 + t2);
-                                SamplesUp[i][l, m, n] = SUp(X.X, X.Y, casT, S, NonCoplanarSpheres);
-                                SamplesDown[i][l, m, n] = SDown(X.X, X.Y, casT, S, NonCoplanarSpheres);
+                                samplesUp[i][l, m, n] = SUp(X.X, X.Y, casT, S, NonCoplanarSpheres);
+                                samplesDown[i][l, m, n] = SDown(X.X, X.Y, casT, S, NonCoplanarSpheres);
                             }
                         }
 
-                        SamplesUp[i][lod, 0, 0] = SUp(C0.X, C0.Y, casT, S, NonCoplanarSpheres);
-                        SamplesDown[i][lod, 0, 0] = SDown(C0.X, C0.Y, casT, S, NonCoplanarSpheres);
+                        samplesUp[i][lod, 0, 0] = SUp(C0.X, C0.Y, casT, S, NonCoplanarSpheres);
+                        samplesDown[i][lod, 0, 0] = SDown(C0.X, C0.Y, casT, S, NonCoplanarSpheres);
 
                         t0 = (float)(lod - 1.0f) / lod;
                         t1 = 1.0f / lod;
                         t = HermiteCurve(1.0f - t0, C0, n0[1], n1[0], C1);
-                        SamplesUp[i][lod - 1, 1, 0] = SUp(t.X, t.Y, casT, S, NonCoplanarSpheres);
-                        SamplesDown[i][lod - 1, 1, 0] = SDown(t.X, t.Y, casT, S, NonCoplanarSpheres);
+                        samplesUp[i][lod - 1, 1, 0] = SUp(t.X, t.Y, casT, S, NonCoplanarSpheres);
+                        samplesDown[i][lod - 1, 1, 0] = SDown(t.X, t.Y, casT, S, NonCoplanarSpheres);
 
                         t0 = (float)(lod - 1.0f) / lod;
                         t2 = 1.0f / lod;
                         t = C0 + (1.0f - t0) * (T - C0);
-                        SamplesUp[i][lod - 1, 0, 1] = SUp(t.X, t.Y, casT, S, NonCoplanarSpheres);
-                        SamplesDown[i][lod - 1, 0, 1] = SDown(t.X, t.Y, casT, S, NonCoplanarSpheres);
+                        samplesUp[i][lod - 1, 0, 1] = SUp(t.X, t.Y, casT, S, NonCoplanarSpheres);
+                        samplesDown[i][lod - 1, 0, 1] = SDown(t.X, t.Y, casT, S, NonCoplanarSpheres);
                     }
 
                 }
@@ -2778,8 +3167,8 @@ namespace MFSpheres
                                 t1 = (float)m / lod;
                                 t2 = (float)n / lod;
                                 t = C0 * t0 + C1 * t1 + T * t2;
-                                SamplesUp[i][l, m, n] = SurfacePoint(t.Xy, S, true);
-                                SamplesDown[i][l, m, n] = SurfacePoint(t.Xy, S, false);
+                                samplesUp[i][l, m, n] = SurfacePoint(t.Xy, S, true);
+                                samplesDown[i][l, m, n] = SurfacePoint(t.Xy, S, false);
                             }
                         }
                     }
@@ -2797,25 +3186,25 @@ namespace MFSpheres
                                 Vector3 c0 = C0 + (1.0f - t0) * (T - C0);
                                 Vector3 h = HermiteCurve(1.0f - t0, C0, n0[1], n1[0], C1);
                                 X = c0 * t2 / (t1 + t2) + h * t1 / (t1 + t2);
-                                SamplesUp[i][l, m, n] = SurfacePoint(X.Xy, S, true);
-                                SamplesDown[i][l, m, n] = SurfacePoint(X.Xy, S, false);
+                                samplesUp[i][l, m, n] = SurfacePoint(X.Xy, S, true);
+                                samplesDown[i][l, m, n] = SurfacePoint(X.Xy, S, false);
                             }
                         }
 
-                        SamplesUp[i][lod, 0, 0] = SurfacePoint(C0.Xy, S, true);
-                        SamplesDown[i][lod, 0, 0] = SurfacePoint(C0.Xy, S, false);
+                        samplesUp[i][lod, 0, 0] = SurfacePoint(C0.Xy, S, true);
+                        samplesDown[i][lod, 0, 0] = SurfacePoint(C0.Xy, S, false);
 
                         t0 = (float)(lod - 1.0f) / lod;
                         t1 = 1.0f / lod;
                         t = HermiteCurve(1.0f - t0, C0, n0[1], n1[0], C1);
-                        SamplesUp[i][lod - 1, 1, 0] = SurfacePoint(t.Xy, S, true);
-                        SamplesDown[i][lod - 1, 1, 0] = SurfacePoint(t.Xy, S, false);
+                        samplesUp[i][lod - 1, 1, 0] = SurfacePoint(t.Xy, S, true);
+                        samplesDown[i][lod - 1, 1, 0] = SurfacePoint(t.Xy, S, false);
 
                         t0 = (float)(lod - 1.0f) / lod;
                         t2 = 1.0f / lod;
                         t = C0 + (1.0f - t0) * (T - C0);
-                        SamplesUp[i][lod - 1, 0, 1] = SurfacePoint(t.Xy, S, true);
-                        SamplesDown[i][lod - 1, 0, 1] = SurfacePoint(t.Xy, S, false);
+                        samplesUp[i][lod - 1, 0, 1] = SurfacePoint(t.Xy, S, true);
+                        samplesDown[i][lod - 1, 0, 1] = SurfacePoint(t.Xy, S, false);
                     }
 
                 }
@@ -3156,7 +3545,46 @@ namespace MFSpheres
         //-----------------------------------------------------------------------------------------------------------------------
 
         // vypocet celej potahovej plochy
-        private void ComputeSkinningSurface(List<Sphere> S, int lod1, int lod2)
+        private void ComputeSkinningSurface()
+        {
+            if (IsDemo)
+            {
+                // TODO
+                if (Homotopy) casHom = 0.0f;
+                else casRozv = 0.0f;
+
+                Sphere sphereRef = _GetRefSphere(Spheres);
+                float totalTime = 0.0f;
+
+                foreach (KeyValuePair<int, BranchedSurface> pair in BranchedSurfacesBySideId)
+                {
+                    BranchedSurface branchedSurface = pair.Value;
+                    branchedSurface.rRef = sphereRef.R;
+                    branchedSurface.ComputeDownSurface = false;
+                    totalTime += branchedSurface.ComputeSkinningSurface(Lod2);
+                }
+
+                foreach (KeyValuePair<Tuple<int, int>, SideSurface> pair in SideSurfacesByBranchedPairs)
+                {
+                    SideSurface sideSurface = pair.Value;
+                    totalTime += sideSurface.ComputeSurface(Lod1);
+                }
+
+                if (Homotopy) casHom = totalTime;
+                else casRozv = totalTime;
+
+                textBox1.Text = "Čas výpočtu 1. metódou: " + (casRozv / 1000.0f).ToString() + " s" + "\n" + "Čas výpočtu 2. metódou: " + (casHom / 1000.0f).ToString() + " s";
+
+                if (Homotopy) casHom = 0.0f;
+                else casRozv = 0.0f;
+            }
+            else
+            {
+                ComputeSkinningSurface(Spheres, Lod1, Lod2, SamplesUp, SamplesDown);
+            }
+        }
+
+        private void ComputeSkinningSurface(List<Sphere> S, int lod1, int lod2, List<Vector3[,,]> samplesUp, List<Vector3[,,]> samplesDown)
         {
             // ak je zvolena rozvetvena konstrukcia tak pocitame hornu/dolnu a bocnu cast
             if (rozvetvena.IsChecked == true || RozvetvenaHomotopia.IsChecked == true)
@@ -3172,21 +3600,21 @@ namespace MFSpheres
                 {
                     for (int i = 0; i < S.Count; i++)
                     {
-                        Spheres[i].R0 = rRef;
+                        S[i].R0 = rRef;
                     }
                 }
                 else
                 {
                     for (int i = 0; i < S.Count; i++)
                     {
-                        Spheres[i].R0 = Spheres[i].R;
+                        S[i].R0 = S[i].R;
                     }
                 }
 
                 if (Homotopy) casHom = 0.0f;
                 else casRozv = 0.0f;
 
-                ComputeUpDownSurface(S, T, lod2);
+                ComputeUpDownSurface(S, T, lod2, samplesUp, samplesDown);
                 ComputeSideSurface(S, lod1);
 
                 textBox1.Text = "Čas výpočtu 1. metódou: " + (casRozv / 1000.0f).ToString() + " s" + "\n" + "Čas výpočtu 2. metódou: " + (casHom / 1000.0f).ToString() + " s";
@@ -3288,7 +3716,30 @@ namespace MFSpheres
             SpheresSamples.Content = (int)SphereSample.Value;
 
             // nakreslime potahovu plochu podla zvolenej konstrukcie
-            if (ShowSurface && Spheres.Count > 1 && !CreatingSphere && ActiveSphere == -1) DrawSkinningSurface(Spheres, Lod1, Lod2);
+            if (ShowSurface && Spheres.Count > 1 && !CreatingSphere && ActiveSphere == -1)
+            {
+                if (IsDemo)
+                {
+                    // TODO
+                    foreach (KeyValuePair<int, BranchedSurface> pair in BranchedSurfacesBySideId)
+                    {
+                        BranchedSurface branchedSurface = pair.Value;
+                        branchedSurface.DrawSkinningSurface(Lod1, Lod2);
+                    }
+                    if (checkBox5.IsChecked == true)
+                    {
+                        foreach (KeyValuePair<Tuple<int, int>, SideSurface> pair in SideSurfacesByBranchedPairs)
+                        {
+                            SideSurface sideSurface = pair.Value;
+                            sideSurface.DrawSurface(Lod1);
+                        }
+                    }
+                }
+                else
+                {
+                    DrawSkinningSurface(Spheres, Lod1, Lod2);
+                }
+            }
             if (ShowSurface && Spheres.Count > 1 && tubularna.IsChecked == true) DrawTubularSurface(Lod1);
 
             // ak je zapnute zobrazovanie vytvorenych sfer
@@ -3308,11 +3759,14 @@ namespace MFSpheres
 
         //-----------------------------------------------------------------------------------------------------------------------
 
-        private void _AddSamples()
+        private void _AddSamples(int n = 1)
         {
-            Samples.Add(new Vector3[120, 120]);
-            SamplesUp.Add(new Vector3[41, 41, 41]);
-            SamplesDown.Add(new Vector3[41, 41, 41]);
+            for (int i = 0; i < n; i++)
+            {
+                Samples.Add(new Vector3[120, 120]);
+                SamplesUp.Add(new Vector3[41, 41, 41]);
+                SamplesDown.Add(new Vector3[41, 41, 41]);
+            }
         }
 
         // zobrazi info o sfere nad ktorou sa prave nachadza mys
@@ -3323,7 +3777,7 @@ namespace MFSpheres
             {
                 if (ActiveSphere == -1) Cursor = System.Windows.Input.Cursors.Hand;
 
-                if (Keyboard.IsKeyDown(Key.M)) Cursor = System.Windows.Input.Cursors.SizeAll;
+                if ((Keyboard.IsKeyDown(Key.M) && IsDemo == false) || Keyboard.IsKeyDown(Key.S) || Keyboard.IsKeyDown(Key.D)) Cursor = System.Windows.Input.Cursors.SizeAll;
                 else if (Keyboard.IsKeyDown(Key.Add) || Keyboard.IsKeyDown(Key.Subtract)) Cursor = System.Windows.Input.Cursors.SizeNS;
                 textBox.Text = "Sféra " + (HitIndex + 1).ToString() + ";  " + "stred: " + Spheres[HitIndex].Center.ToString() + ";  " + "polomer: " + Spheres[HitIndex].R.ToString();
             }
@@ -3398,13 +3852,13 @@ namespace MFSpheres
                 if (HitIndex != -1 && checkBox2.IsChecked == true)
                 {
                     ActiveSphere = HitIndex;
-                    if (Keyboard.IsKeyDown(Key.M))
+                    if (Keyboard.IsKeyDown(Key.M) && IsDemo == false)
                     {
                         Cursor = System.Windows.Input.Cursors.SizeAll;
                         Spheres[ActiveSphere].Center = center;
                     }
                     else if (Keyboard.IsKeyDown(Key.Add) || Keyboard.IsKeyDown(Key.Subtract)) Cursor = System.Windows.Input.Cursors.SizeNS;
-                    else Spheres[ActiveSphere].R = (Spheres[ActiveSphere].Center - HitPoint).Length;
+                    else if (Keyboard.IsKeyDown(Key.S) == false && Keyboard.IsKeyDown(Key.D) == false && IsDemo == false) Spheres[ActiveSphere].R = (Spheres[ActiveSphere].Center - HitPoint).Length;
 
                     CreatingSphere = false;
                 }
@@ -3421,15 +3875,15 @@ namespace MFSpheres
 
                 float[] diffuse = { 0.0f, 0.0f, 1.0f, 1.0f };
 
-                if (CreatingSphere)
+                if (CreatingSphere && IsDemo == false)
                 {
-                    Spheres.Add(new Sphere(center, 0.1f, diffuse));
+                    Spheres.Add(new Sphere(Spheres.Count, center, 0.1f, diffuse));
                     ComputeTubularNormals();
                     _AddSamples();
                     RightX = e.X;
                     RightY = e.Y;
                 }
-                if (checkBox7.IsChecked == true) ComputeSkinningSurface(Spheres, Lod1, Lod2);
+                if (checkBox7.IsChecked == true) ComputeSkinningSurface();
             }
 
             // prekresli scenu
@@ -3517,13 +3971,13 @@ namespace MFSpheres
                 }
                 else P = start;
 
-                if (Keyboard.IsKeyDown(Key.M))
+                if (Keyboard.IsKeyDown(Key.M) && IsDemo == false)
                 {
                     Cursor = System.Windows.Input.Cursors.SizeAll;
                     Spheres[ActiveSphere].Center += P - Spheres[ActiveSphere].Center;
                 }
                 else if (Keyboard.IsKeyDown(Key.Add) || Keyboard.IsKeyDown(Key.Subtract)) Cursor = System.Windows.Input.Cursors.SizeNS;
-                else Spheres[ActiveSphere].R = (P - Spheres[ActiveSphere].Center).Length;
+                else if (Keyboard.IsKeyDown(Key.S) == false && Keyboard.IsKeyDown(Key.D) == false && IsDemo == false) Spheres[ActiveSphere].R = (P - Spheres[ActiveSphere].Center).Length;
 
                 if (checkBox7.IsChecked == true && tubularna.IsChecked == true) ComputeTubularSurface(Lod1);
 
@@ -3581,7 +4035,7 @@ namespace MFSpheres
             if (e.Button == MouseButtons.Left)
             {
                 SetRefPoint(Spheres);
-                if (checkBox7.IsChecked == true) ComputeSkinningSurface(Spheres, Lod1, Lod2);
+                if (checkBox7.IsChecked == true) ComputeSkinningSurface();
                 CreatingSphere = false;
                 ActiveSphere = -1;
                 HitIndex = -1;
@@ -3619,16 +4073,32 @@ namespace MFSpheres
         {
             if (ActiveSphere != -1)
             {
+                Vector3 centerDirection = Spheres[ActiveSphere].Center.Normalized();
                 if (e.KeyCode == Keys.Add)
                 {
-                    Spheres[ActiveSphere].Center.Z += deltaZ;
+
+                    Spheres[ActiveSphere].Center += IsDemo ? step * centerDirection : step * e3;
 
                     // prekresli scenu
                     glControl.Invalidate();
                 }
                 else if (e.KeyCode == Keys.Subtract)
                 {
-                    Spheres[ActiveSphere].Center.Z -= deltaZ;
+                    Spheres[ActiveSphere].Center -= IsDemo ? step * centerDirection : step * e3;
+
+                    // prekresli scenu
+                    glControl.Invalidate();
+                }
+                else if (e.KeyCode == Keys.S && IsDemo)
+                {
+                    Spheres[ActiveSphere].R += step;
+
+                    // prekresli scenu
+                    glControl.Invalidate();
+                }
+                else if (e.KeyCode == Keys.D && IsDemo)
+                {
+                    Spheres[ActiveSphere].R -= step;
 
                     // prekresli scenu
                     glControl.Invalidate();
@@ -3674,7 +4144,7 @@ namespace MFSpheres
         {
             casT = 1.0f;
             Homotopy = false;
-            if (ShowSurface) ComputeSkinningSurface(Spheres, Lod1, Lod2);
+            if (ShowSurface) ComputeSkinningSurface();
             ShowTubular = false;
 
             glControl.Invalidate();
@@ -3713,7 +4183,7 @@ namespace MFSpheres
             Homotopy = true;
             SetRefPoint(Spheres);
 
-            if (ShowSurface) ComputeSkinningSurface(Spheres, Lod1, Lod2);
+            if (ShowSurface) ComputeSkinningSurface();
             ShowTubular = false;
 
             glControl.Invalidate();
@@ -3749,7 +4219,7 @@ namespace MFSpheres
         private void slider1_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             Eta = (int)slider1.Value;
-            if (ShowSurface) ComputeSkinningSurface(Spheres, Lod1, Lod2);
+            if (ShowSurface) ComputeSkinningSurface();
 
             glControl.Invalidate();
         }
@@ -3767,7 +4237,7 @@ namespace MFSpheres
                 {
                     T += Spheres[i].Center / Spheres.Count;
                 }
-                ComputeUpDownSurface(Spheres, T, Lod2);
+                ComputeUpDownSurface(Spheres, T, Lod2, SamplesUp, SamplesDown);
             }
 
             glControl.Invalidate();
@@ -3785,7 +4255,7 @@ namespace MFSpheres
                 Delta = FindMaxDelta();
                 slider3.Value = (double)Delta * 100;
             }*/
-            if (ShowSurface) ComputeSkinningSurface(Spheres, Lod1, Lod2);
+            if (ShowSurface) ComputeSkinningSurface();
 
             glControl.Invalidate();
         }
@@ -3811,7 +4281,7 @@ namespace MFSpheres
 
         private void ModifShep_Checked(object sender, RoutedEventArgs e)
         {
-            if (ShowSurface) ComputeSkinningSurface(Spheres, Lod1, Lod2);
+            if (ShowSurface) ComputeSkinningSurface();
 
             glControl.Invalidate();
         }
@@ -3873,7 +4343,7 @@ namespace MFSpheres
         private void slider5_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             casT = (int)slider5.Value / 100.0f;
-            if (ShowSurface && RozvetvenaHomotopia.IsChecked == true) ComputeSkinningSurface(Spheres, Lod1, Lod2);
+            if (ShowSurface && RozvetvenaHomotopia.IsChecked == true) ComputeSkinningSurface();
 
             glControl.Invalidate();
         }
@@ -3897,7 +4367,8 @@ namespace MFSpheres
         private void checkBox7_Checked(object sender, RoutedEventArgs e)
         {
             ShowSurface = true;
-            ComputeSkinningSurface(Spheres, Lod1, Lod2);
+
+            ComputeSkinningSurface();
 
             glControl.Invalidate();
         }
@@ -3925,6 +4396,7 @@ namespace MFSpheres
         {
             _Clear();
             IsRightDown = false;
+            IsDemo = false;
             ShowSurface = false;
             checkBox7.IsChecked = false;
             ActiveSphere = -1;
@@ -3939,41 +4411,62 @@ namespace MFSpheres
     // trieda sfera dana stredom a polomerom, dodatocny param. je jej difuzna farba
     class Sphere
     {
-        public float R, R0;
-        public Vector3 Center;
-        public float[] DiffColor;
+        private Vector3 _centerTemp;
+        private Vector3 _centerOriginalTemp;
 
-        public Sphere(Vector3 center, float r, float[] diffColor)
+        public int Id { get; set; }
+        public float R { get; set; }
+        public float R0 { get; set; }
+        public Vector3 Center { get; set; }
+        public Vector3 CenterOriginal { get; set; }
+        public float[] DiffColor { get; set; }
+
+        public Vector3 Translation => new Vector3(Center - CenterOriginal);
+
+        public Sphere(int id, Vector3 center, float r, float[] diffColor, Vector3 centerOriginal)
         {
-            Center = center;
+            Id = id;
+            Center = new Vector3(center);
+            CenterOriginal = new Vector3(centerOriginal);
+            R = r;
+            R0 = R;
+            DiffColor = diffColor;
+        }
+
+        public Sphere(int id, Vector3 center, float r, float[] diffColor)
+        {
+            Id = id;
+            Center = new Vector3(center);
+            CenterOriginal = new Vector3(center);
             R = r;
             R0 = R;
             DiffColor = diffColor;
         }
 
         // ak nezvolime farbu tak defaultne nastavime na cervenu
-        public Sphere(Vector3 center, float r)
+        public Sphere(int id, Vector3 center, float r)
         {
-            Center = center;
+            Id = id;
+            Center = new Vector3(center);
+            CenterOriginal = new Vector3(center);
             R = r;
             R0 = R;
             DiffColor = new float[] { 1.0f, 0.0f, 0.0f, 1.0f };
         }
 
-        public Matrix4 M(float t)
+        public Sphere(int id, Vector3 center, float r, Vector3 centerOriginal)
         {
-            float dt = 1.0f + (1.0f - t) * (R0 / R - 1.0f);
-            Vector4 row0 = new Vector4(dt, 0, 0, Center.X * (1.0f - dt));
-            Vector4 row1 = new Vector4(0, dt, 0, Center.Y * (1.0f - dt));
-            Vector4 row2 = new Vector4(0, 0, dt, 0);
-            Vector4 row3 = new Vector4(0, 0, 0, 1.0f);
-
-            return new Matrix4(row0, row1, row2, row3);
+            Id = id;
+            Center = new Vector3(center);
+            CenterOriginal = new Vector3(centerOriginal);
+            R = r;
+            R0 = R;
+            DiffColor = new float[] { 1.0f, 0.0f, 0.0f, 1.0f };
         }
 
         public Vector3 CenterInTime(float time)
         {
-            return new Vector3(Center.X, Center.Y, time * Center.Z);
+            return new Vector3(CenterOriginal + time * Translation);
         }
 
         public void Draw(int Lod, float Alpha, bool drawNet)
@@ -4087,7 +4580,1239 @@ namespace MFSpheres
                     }
                 }
             }
+        }
 
+        public void SetLocal(Matrix4 matrix)
+        {
+            _centerTemp = new Vector3(Center);
+            _centerOriginalTemp = new Vector3(CenterOriginal);
+
+            _ApplyMatrix(matrix);
+        }
+
+        public void SetGlobal()
+        {
+            Center = _centerTemp;
+            CenterOriginal = _centerOriginalTemp;
+        }
+
+        private void _ApplyMatrix(Matrix4 matrix)
+        {
+            Vector4 c = matrix * new Vector4(Center.X, Center.Y, Center.Z, 1.0f);
+            Vector4 cOrig = matrix * new Vector4(CenterOriginal.X, CenterOriginal.Y, CenterOriginal.Z, 1.0f);
+            Center = new Vector3(c.Xyz / c.W);
+            CenterOriginal = new Vector3(cOrig.Xyz / cOrig.W);
+        }
+    }
+
+    class BranchedSurface
+    {
+        private readonly MainWindow _window;
+
+        private bool _areSpheresInGlobal = true;
+
+        public int Id { get; set; } = 0;
+        public List<Sphere> Spheres { get; set; } = new List<Sphere>();
+        public List<Vector3[,,]> SamplesUp { get; set; } = new List<Vector3[,,]>();
+        public List<Vector3[,,]> SamplesDown { get; set; } = new List<Vector3[,,]>();
+        public List<Vector3[,]> Samples { get; set; } = new List<Vector3[,]>();
+
+        public Matrix4 Matrix = new Matrix4();
+        public Matrix4 InverseMatrix = new Matrix4();
+
+        // referencny polomer
+        public float rRef { get; set; }
+        public bool ComputeDownSurface { get; set; } = true;
+
+        public BranchedSurface(MainWindow window, int id, List<Sphere> spheres, Matrix4 matrix)
+        {
+            _window = window;
+            Id = id;
+            Spheres = spheres;
+            Matrix = matrix;
+            InverseMatrix = Matrix.Inverted();
+            _AddSamples(Spheres?.Count ?? 0);
+            _SetRefRadius(Spheres);
+        }
+
+        public BranchedSurface(MainWindow window, int id, List<Sphere> spheres, Sphere sphereRef, Matrix4 matrix)
+        {
+            _window = window;
+            Id = id;
+            Spheres = spheres;
+            Matrix = matrix;
+            InverseMatrix = Matrix.Inverted();
+            _AddSamples(Spheres?.Count ?? 0);
+            _SetRefRadius(sphereRef);
+        }
+
+        public long ComputeSkinningSurface(int lod)
+        {
+            long totalTime = 0;
+            // ak je zvolena rozvetvena konstrukcia tak pocitame hornu/dolnu a bocnu cast
+            if (_window.rozvetvena.IsChecked == true || _window.RozvetvenaHomotopia.IsChecked == true)
+            {
+                if (_window.RozvetvenaHomotopia.IsChecked == true)
+                {
+                    for (int i = 0; i < Spheres.Count; i++)
+                    {
+                        Spheres[i].R0 = rRef;
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < Spheres.Count; i++)
+                    {
+                        Spheres[i].R0 = Spheres[i].R;
+                    }
+                }
+
+                totalTime += _ComputeUpDownSurface(lod);
+                // totalTime +=_ComputeSideSurface(S, lod1);
+            }
+
+            return totalTime;
+        }
+
+        // vypocet bodov hornej a dolnej casti potahovej plochy
+        private long _ComputeUpDownSurface(int lod)
+        {
+            TransformSpheresToLocal();
+
+            List<Sphere> S = Spheres;
+
+            Stopwatch stopWatch = new Stopwatch();
+
+            Vector3 T = new Vector3(0.0f, 0.0f, 0.0f);
+            for (int i = 0; i < S.Count; i++)
+            {
+                T += S[i].CenterInTime(0) / S.Count;
+            }
+
+            T.Z = 0.0f;
+
+            int n;
+            float t0, t1, t2;
+            Vector3 t;
+
+            stopWatch.Start();
+            for (int i = 0; i < S.Count; i++)
+            {
+                Vector3 C0 = new Vector3(S[i].CenterInTime(0).X, S[i].CenterInTime(0).Y, 0.0f);
+                Vector3 C1;
+                if (i != S.Count - 1) C1 = new Vector3(S[i + 1].CenterInTime(0).X, S[i + 1].CenterInTime(0).Y, 0.0f);
+                else C1 = new Vector3(S[0].CenterInTime(0).X, S[0].CenterInTime(0).Y, 0.0f);
+                Vector3 X;
+                List<Vector3> n0 = _CheckKonvexAt(i, 0, S);
+                List<Vector3> n1 = _CheckKonvexAt(i, 1, S);
+
+                if (MainWindow.det(n0[1].Xy, n1[0].Xy) < MainWindow.eps && MainWindow.det(n0[1].Xy, n1[0].Xy) > -MainWindow.eps)
+                {
+                    // vypocet vo vzorkovacich bodoch
+                    for (int l = lod; l >= 0; l--)
+                    {
+                        for (int m = lod - l; m >= 0; m--)
+                        {
+                            n = lod - (l + m);
+                            t0 = (float)l / lod;
+                            t1 = (float)m / lod;
+                            t2 = (float)n / lod;
+                            t = C0 * t0 + C1 * t1 + T * t2;
+                            SamplesUp[i][l, m, n] = _SUp(t.X, t.Y, MainWindow.casT, S);
+                            if (ComputeDownSurface)
+                            {
+                                SamplesDown[i][l, m, n] = _SDown(t.X, t.Y, MainWindow.casT, S);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // vypocet vo vzorkovacich bodoch
+                    for (int l = lod; l >= 0; l--)
+                    {
+                        for (int m = lod - l; m >= 0; m--)
+                        {
+                            n = lod - (l + m);
+                            t0 = (float)l / lod;
+                            t1 = (float)m / lod;
+                            t2 = (float)n / lod;
+                            Vector3 c0 = C0 + (1.0f - t0) * (T - C0);
+                            Vector3 h = MainWindow.HermiteCurve(1.0f - t0, C0, n0[1], n1[0], C1);
+                            X = c0 * t2 / (t1 + t2) + h * t1 / (t1 + t2);
+
+                            SamplesUp[i][l, m, n] = _SUp(X.X, X.Y, MainWindow.casT, S);
+
+                            if (ComputeDownSurface)
+                            {
+                                SamplesDown[i][l, m, n] = _SDown(X.X, X.Y, MainWindow.casT, S);
+                            }
+                        }
+                    }
+
+                    SamplesUp[i][lod, 0, 0] = _SUp(C0.X, C0.Y, MainWindow.casT, S);
+                    if (ComputeDownSurface)
+                    {
+                        SamplesDown[i][lod, 0, 0] = _SDown(C0.X, C0.Y, MainWindow.casT, S);
+                    }
+
+                    t0 = (float)(lod - 1.0f) / lod;
+                    t1 = 1.0f / lod;
+                    t = MainWindow.HermiteCurve(1.0f - t0, C0, n0[1], n1[0], C1);
+                    SamplesUp[i][lod - 1, 1, 0] = _SUp(t.X, t.Y, MainWindow.casT, S);
+                    if (ComputeDownSurface)
+                    {
+                        SamplesDown[i][lod - 1, 1, 0] = _SDown(t.X, t.Y, MainWindow.casT, S);
+                    }
+
+                    t0 = (float)(lod - 1.0f) / lod;
+                    t2 = 1.0f / lod;
+                    t = C0 + (1.0f - t0) * (T - C0);
+                    SamplesUp[i][lod - 1, 0, 1] = _SUp(t.X, t.Y, MainWindow.casT, S);
+                    if (ComputeDownSurface)
+                    {
+                        SamplesDown[i][lod - 1, 0, 1] = _SDown(t.X, t.Y, MainWindow.casT, S);
+                    }
+                }
+
+            }
+
+            TransformSpheresToGlobal();
+
+            stopWatch.Stop();
+
+            return stopWatch.ElapsedMilliseconds;
+        }
+
+
+        // vykreslovanie celej potahovej plochy
+        public void DrawSkinningSurface(int lod1, int lod2)
+        {
+            // ak je zvolena rozvetvena konstrukcia tak kreslime hornu/dolnu a bocnu cast
+            if (_window.rozvetvena.IsChecked == true || _window.RozvetvenaHomotopia.IsChecked == true)
+            {
+                if (_window.checkBox6.IsChecked == true) _DrawUpDownSurface(Spheres, lod2);
+                // if (m_window.checkBox5.IsChecked == true) DrawSideSurface(S, lod1);
+            }
+            // ak je zvolena tubularna konstrukcia tak kreslime body tubularnej potahovej plochy
+            if (_window.tubularna.IsChecked == true)
+            {
+                // DrawTubularSurface(lod1);
+            }
+        }
+
+        // vykreslenie hornej a dolnej casti potahovej plochy
+        private void _DrawUpDownSurface(List<Sphere> S, int lod)
+        {
+            float[] red = { 1.0f, 0.0f, 0.0f, 1.0f };
+            float[] Diffuse, Ambient, Specular = { 0.5f, 0.5f, 0.5f, 1.0f };
+            float Shininess = 0.5f;
+            if (MainWindow.ColorOne)
+            {
+                Diffuse = new float[] { 0.0f, 1.0f, 0.0f, 1.0f };
+                Ambient = new float[] { 0.0f, 1.0f, 0.0f, 1.0f };
+                Specular = new float[] { 0.05f, 0.05f, 0.05f, 0.5f };
+                Shininess = 0.1f;
+            }
+            else
+            {
+                Diffuse = new float[] { 0.0f, 0.5f, 0.0f, 1.0f };
+                Ambient = new float[] { 0.5f, 0.5f, 0.0f, 1.0f };
+            }
+
+            // prechadzame jednotlivymi trojuholnikmi danymi S[i].Center, S[i+1].Center a T (taziskom vsetkych sfer)
+            for (int i = 0; i < S.Count; i++)
+            {
+                // vykreslenie hornej/dolnej casti plochy
+                for (int l = lod; l > 0; l--)
+                {
+                    for (int m = lod - l; m >= 0; m--)
+                    {
+                        int n = lod - (l + m);
+                        if (_window.checkBox4.IsChecked == true)
+                        {
+                            GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
+                            GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Diffuse, Diffuse);
+                            GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Ambient, Ambient);
+                            GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Specular, Specular);
+                            GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Shininess, Shininess);
+
+                            Vector3 normal = Vector3.Cross(SamplesUp[i][l - 1, m + 1, n] - SamplesUp[i][l, m, n], SamplesUp[i][l - 1, m, n + 1] - SamplesUp[i][l - 1, m + 1, n]).Normalized();
+
+                            GL.Begin(PrimitiveType.Triangles);
+                            GL.Normal3(normal);
+                            GL.Vertex3(SamplesUp[i][l, m, n]);
+                            GL.Vertex3(SamplesUp[i][l - 1, m + 1, n]);
+                            GL.Vertex3(SamplesUp[i][l - 1, m, n + 1]);
+                            GL.End();
+                        }
+
+                        if (_window.checkBox3.IsChecked == true)
+                        {
+                            GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
+                            GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Diffuse, red);
+                            GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Ambient, red);
+                            GL.LineWidth(1.0f);
+                            GL.Begin(PrimitiveType.LineLoop);
+                            GL.Vertex3(SamplesUp[i][l, m, n]);
+                            GL.Vertex3(SamplesUp[i][l - 1, m + 1, n]);
+                            GL.Vertex3(SamplesUp[i][l - 1, m, n + 1]);
+                            GL.End();
+                        }
+
+                        if (ComputeDownSurface)
+                        {
+                            if (_window.checkBox4.IsChecked == true)
+                            {
+                                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
+                                GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Diffuse, Diffuse);
+                                GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Ambient, Ambient);
+                                GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Specular, Specular);
+                                GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Shininess, Shininess);
+
+                                Vector3 normal = Vector3.Cross(SamplesDown[i][l - 1, m, n + 1] - SamplesDown[i][l - 1, m + 1, n], SamplesDown[i][l - 1, m + 1, n] - SamplesDown[i][l, m, n]).Normalized();
+
+                                GL.Begin(PrimitiveType.Triangles);
+                                GL.Normal3(normal);
+                                GL.Vertex3(SamplesDown[i][l, m, n]);
+                                GL.Vertex3(SamplesDown[i][l - 1, m + 1, n]);
+                                GL.Vertex3(SamplesDown[i][l - 1, m, n + 1]);
+                                GL.End();
+                            }
+
+                            if (_window.checkBox3.IsChecked == true)
+                            {
+                                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
+                                GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Diffuse, red);
+                                GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Ambient, red);
+                                GL.LineWidth(1.0f);
+                                GL.Begin(PrimitiveType.LineLoop);
+                                GL.Vertex3(SamplesDown[i][l, m, n]);
+                                GL.Vertex3(SamplesDown[i][l - 1, m + 1, n]);
+                                GL.Vertex3(SamplesDown[i][l - 1, m, n + 1]);
+                                GL.End();
+                            }
+                        }
+
+                        if (m > 0)
+                        {
+                            if (_window.checkBox4.IsChecked == true)
+                            {
+                                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
+                                GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Diffuse, Diffuse);
+                                GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Ambient, Ambient);
+                                GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Specular, Specular);
+                                GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Shininess, Shininess);
+
+                                Vector3 normal = Vector3.Cross(SamplesUp[i][l - 1, m, n + 1] - SamplesUp[i][l, m - 1, n + 1], SamplesUp[i][l, m - 1, n + 1] - SamplesUp[i][l, m, n]).Normalized();
+
+                                GL.Begin(PrimitiveType.Triangles);
+                                GL.Normal3(normal);
+                                GL.Vertex3(SamplesUp[i][l, m, n]);
+                                GL.Vertex3(SamplesUp[i][l, m - 1, n + 1]);
+                                GL.Vertex3(SamplesUp[i][l - 1, m, n + 1]);
+                                GL.End();
+                            }
+
+                            if (ComputeDownSurface)
+                            {
+                                if (_window.checkBox4.IsChecked == true)
+                                {
+                                    GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
+                                    GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Diffuse, Diffuse);
+                                    GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Ambient, Ambient);
+                                    GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Specular, Specular);
+                                    GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Shininess, Shininess);
+
+                                    Vector3 normal = Vector3.Cross(SamplesDown[i][l, m - 1, n + 1] - SamplesDown[i][l, m, n], SamplesDown[i][l - 1, m, n + 1] - SamplesDown[i][l, m - 1, n + 1]).Normalized();
+
+                                    GL.Begin(PrimitiveType.Triangles);
+                                    GL.Normal3(normal);
+                                    GL.Vertex3(SamplesDown[i][l, m, n]);
+                                    GL.Vertex3(SamplesDown[i][l, m - 1, n + 1]);
+                                    GL.Vertex3(SamplesDown[i][l - 1, m, n + 1]);
+                                    GL.End();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        public void TransformSpheresToLocal()
+        {
+            if (_areSpheresInGlobal)
+            {
+                foreach (Sphere sphere in Spheres)
+                {
+                    sphere.SetLocal(Matrix);
+                }
+                _areSpheresInGlobal = false;
+            }
+        }
+
+        public void TransformSpheresToGlobal()
+        {
+            if (_areSpheresInGlobal == false)
+            {
+                foreach (Sphere sphere in Spheres)
+                {
+                    sphere.SetGlobal();
+                }
+                _areSpheresInGlobal = true;
+            }
+        }
+
+        private void _AddSamples(int n = 1)
+        {
+            for (int i = 0; i < n; i++)
+            {
+                Samples.Add(new Vector3[120, 120]);
+                SamplesUp.Add(new Vector3[41, 41, 41]);
+                SamplesDown.Add(new Vector3[41, 41, 41]);
+            }
+        }
+
+        private Vector3 _SUp(float u, float v, float t, List<Sphere> S)
+        {
+            return (InverseMatrix * _K(u, v, t, S) * new Vector4(u, v, rRef, 1.0f)).Xyz;
+        }
+
+        public Vector3 SUp(float u, float v, float t)
+        {
+            return _SUp(u, v, t, Spheres);
+        }
+
+        private Vector3 _SDown(float u, float v, float t, List<Sphere> S)
+        {
+            return (InverseMatrix * _K(u, v, t, S) * new Vector4(u, v, -rRef, 1.0f)).Xyz;
+        }
+
+        // parcialne derivacie hornej casti
+        private Vector3 _dSUp(string uv, float u, float v, float t, List<Sphere> S)
+        {
+            Vector2 X = new Vector2(u, v);
+            Vector3 ds = Vector3.Zero;
+            Vector3 e1 = new Vector3(1.0f, 0.0f, 0.0f);
+            Vector3 e2 = new Vector3(0.0f, 1.0f, 0.0f);
+
+            for (int i = 0; i < S.Count; i++)
+            {
+                Vector3 center = S[i].CenterInTime(0);
+                if (Vector2.Dot(X - center.Xy, X - center.Xy) <= MainWindow.eps && uv == "u") return (1.0f + t * (S[i].R / rRef - 1.0f)) * e1;
+                if (Vector2.Dot(X - center.Xy, X - center.Xy) <= MainWindow.eps && uv == "v") return (1.0f + t * (S[i].R / rRef - 1.0f)) * e2;
+            }
+
+            float dit, dwi;
+            float SumWD = 0.0f;
+            for (int i = 0; i < S.Count; i++)
+            {
+                Vector3 center = S[i].CenterInTime(0);
+                dit = 1.0f + t * (S[i].R / rRef - 1.0f);
+                dwi = _dW(uv, i, u, v, 0.0f, S);
+                ds[0] += dwi * (u * dit + center.X * (1.0f - dit) + t * S[i].Translation.X);
+                ds[1] += dwi * (v * dit + center.Y * (1.0f - dit) + t * S[i].Translation.Y);
+                ds[2] += dwi * (rRef * dit + t * S[i].Translation.Z);
+                SumWD += _w(i, X, S, 0.0f) * dit;
+            }
+
+            if (uv == "u") return ds + SumWD * e1;
+            else if (uv == "v") return ds + SumWD * e2;
+            else return Vector3.Zero;
+        }
+
+        // parcialne derivacie spodnej casti
+        private Vector3 _dSDown(string uv, float u, float v, float t, List<Sphere> S)
+        {
+            Vector2 X = new Vector2(u, v);
+            Vector3 ds = Vector3.Zero;
+            Vector3 e1 = new Vector3(1.0f, 0.0f, 0.0f);
+            Vector3 e2 = new Vector3(0.0f, 1.0f, 0.0f);
+
+            for (int i = 0; i < S.Count; i++)
+            {
+                Vector3 center = S[i].CenterInTime(0);
+                if (Vector2.Dot(X - center.Xy, X - center.Xy) <= MainWindow.eps && uv == "u") return (1.0f + t * (S[i].R / rRef - 1.0f)) * e1;
+                if (Vector2.Dot(X - center.Xy, X - center.Xy) <= MainWindow.eps && uv == "v") return (1.0f + t * (S[i].R / rRef - 1.0f)) * e2;
+            }
+
+            float dit, dwi;
+            float SumWD = 0.0f;
+            for (int i = 0; i < S.Count; i++)
+            {
+                Vector3 center = S[i].CenterInTime(0);
+                dit = 1.0f + t * (S[i].R / rRef - 1.0f);
+                dwi = _dW(uv, i, u, v, 0.0f, S);
+                ds[0] += dwi * (u * dit + center.X * (1.0f - dit) + t * S[i].Translation.X);
+                ds[1] += dwi * (v * dit + center.Y * (1.0f - dit) + t * S[i].Translation.Y);
+                ds[2] += dwi * (-rRef * dit + t * S[i].Translation.Z);
+                SumWD += _w(i, X, S, 0.0f) * dit;
+            }
+
+            if (uv == "u") return ds + SumWD * e1;
+            else if (uv == "v") return ds + SumWD * e2;
+            else return Vector3.Zero;
+        }
+
+        // normalovy vektor hornej casti
+        private Vector3 _normalSH(float u, float v, float t, List<Sphere> S)
+        {
+            return Vector3.Cross(_dSUp("u", u, v, t, S), _dSUp("v", u, v, t, S));
+        }
+
+        public Vector3 normalSH(float u, float v, float t)
+        {
+            return _normalSH(u, v, t, Spheres);
+        }
+
+        // normalovy vektor spodnej casti
+        private Vector3 _normalSD(float u, float v, float t, List<Sphere> S)
+        {
+            return Vector3.Cross(_dSDown("u", u, v, t, S), _dSDown("v", u, v, t, S));
+        }
+
+        // vypocet derivacii k-tej hornej hranicnej krivky
+        private Vector3 _dsup(int k, float u, float t, List<Sphere> S)
+        {
+            Vector3 X, s;
+            List<Vector3> n0 = _CheckKonvexAt(k, 0, S);
+            List<Vector3> n1 = _CheckKonvexAt(k, 1, S);
+
+            if (k < S.Count - 1)
+            {
+                X = MainWindow.HermiteCurve(u, S[k].CenterInTime(0), n0[1], n1[0], S[k + 1].CenterInTime(0));
+                s = MainWindow.dHermiteCurve(u, S[k].CenterInTime(0), n0[1], n1[0], S[k + 1].CenterInTime(0));
+            }
+            else
+            {
+                X = MainWindow.HermiteCurve(u, S[k].CenterInTime(0), n0[1], n1[0], S[0].CenterInTime(0));
+                s = MainWindow.dHermiteCurve(u, S[k].CenterInTime(0), n0[1], n1[0], S[0].CenterInTime(0));
+            }
+
+            return _dSUp("u", X.X, X.Y, t, S) * s[0] + _dSUp("v", X.X, X.Y, t, S) * s[1];
+        }
+
+        // vypocet derivacii k-tej hornej hranicnej krivky
+        public Vector3 dsup(float u, float t, Sphere S1, Sphere S2)
+        {
+            Vector3 X, s;
+            Vector3 center1 = S1.CenterInTime(0);
+            Vector3 center2 = S2.CenterInTime(0);
+            Vector3 v = center2 - center1;
+
+            X = MainWindow.HermiteCurve(u, center1, v, v, center2);
+            s = MainWindow.dHermiteCurve(u, center1, v, v, center2);
+
+            return _dSUp("u", X.X, X.Y, t, Spheres) * s[0] + _dSUp("v", X.X, X.Y, t, Spheres) * s[1];
+        }
+
+        public Vector3 dsup(int k, float u, float t)
+        {
+            return _dsup(k, u, t, Spheres);
+        }
+
+        // vypocet derivacii k-tej spodnej hranicnej krivky
+        private Vector3 _dsdown(int k, float u, float t, List<Sphere> S)
+        {
+            Vector3 X, s;
+            List<Vector3> n0 = _CheckKonvexAt(k, 0, S);
+            List<Vector3> n1 = _CheckKonvexAt(k, 1, S);
+
+            if (k < S.Count - 1)
+            {
+                X = MainWindow.HermiteCurve(u, S[k].CenterInTime(0), n0[1], n1[0], S[k + 1].CenterInTime(0));
+                s = MainWindow.dHermiteCurve(u, S[k].CenterInTime(0), n0[1], n1[0], S[k + 1].CenterInTime(0));
+            }
+            else
+            {
+                X = MainWindow.HermiteCurve(u, S[k].CenterInTime(0), n0[1], n1[0], S[0].CenterInTime(0));
+                s = MainWindow.dHermiteCurve(u, S[k].CenterInTime(0), n0[1], n1[0], S[0].CenterInTime(0));
+            }
+
+            return _dSDown("u", X.X, X.Y, t, S) * s[0] + _dSDown("v", X.X, X.Y, t, S) * s[1];
+        }
+
+        //-----------------------------------------------------------------------------------------------------------------------
+
+        private static List<Vector3> _CheckKonvexAt(int i, int j, List<Sphere> S)
+        {
+            Vector3 t0 = new Vector3(), t1 = new Vector3();
+            if (S.Count > 1)
+            {
+                if (i >= 1 && i <= S.Count - 3)
+                {
+                    t0 = S[i + j].CenterInTime(0) - S[i + j - 1].CenterInTime(0);
+                    t1 = S[i + j + 1].CenterInTime(0) - S[i + j].CenterInTime(0);
+                }
+                else if (i == 0)
+                {
+                    if (j == 0)
+                    {
+                        t0 = S[0].CenterInTime(0) - S[S.Count - 1].CenterInTime(0);
+                        t1 = S[1].CenterInTime(0) - S[0].CenterInTime(0);
+                    }
+                    else
+                    {
+                        t0 = S[1].CenterInTime(0) - S[0].CenterInTime(0);
+                        if (S.Count > 2) t1 = S[2].CenterInTime(0) - S[1].CenterInTime(0);
+                        else t1 = S[0].CenterInTime(0) - S[1].CenterInTime(0);
+                    }
+                }
+                else if (i == S.Count - 2)
+                {
+                    if (j == 0)
+                    {
+                        t0 = S[S.Count - 2].CenterInTime(0) - S[S.Count - 3].CenterInTime(0);
+                        t1 = S[S.Count - 1].CenterInTime(0) - S[S.Count - 2].CenterInTime(0);
+                    }
+                    else
+                    {
+                        t0 = S[S.Count - 1].CenterInTime(0) - S[S.Count - 2].CenterInTime(0);
+                        t1 = S[0].CenterInTime(0) - S[S.Count - 1].CenterInTime(0);
+                    }
+                }
+                else
+                {
+                    if (j == 0)
+                    {
+                        t0 = S[S.Count - 1].CenterInTime(0) - S[S.Count - 2].CenterInTime(0);
+                        t1 = S[0].CenterInTime(0) - S[S.Count - 1].CenterInTime(0);
+                    }
+                    else
+                    {
+                        t0 = S[0].CenterInTime(0) - S[S.Count - 1].CenterInTime(0);
+                        t1 = S[1].CenterInTime(0) - S[0].CenterInTime(0);
+                    }
+                }
+
+                if (MainWindow.det(t0.Xy, t1.Xy) < -MainWindow.eps)
+                {
+                    Vector3 s = (t0 + t1) / 2.0f;
+                    t0 = s;
+                    t1 = s;
+                }
+            }
+
+            t0.Z = 0.0f;
+            t1.Z = 0.0f;
+
+            return new List<Vector3> { t0, t1 };
+        }
+
+        //-----------------------------------------------------------------------------------------------------------------------
+
+        // i-ta vahova funkcia v bode X pri danej mnozine sfer S
+        private float _w(int i, Vector2 X, List<Sphere> S, float delta)
+        {
+            for (int j = 0; j < S.Count; j++)
+            {
+                if ((X - S[j].CenterInTime(0).Xy).Length - delta * S[j].R <= MainWindow.eps) return MainWindow.KDelta(i, j); //if (Vector2.Dot(X - S[j].Center.Xy, X - S[j].Center.Xy) - Math.Pow(delta * S[j].R, 2) <= eps) return KDelta(i, j);
+            }
+
+            float wSum = 0.0f;
+            for (int j = 0; j < S.Count; j++)
+            {
+                wSum += _p(j, X, S, delta); //* (float)Math.Pow((P(X, S)- S[j].Center).Length, n));
+            }
+            return _p(i, X, S, delta) / wSum; //* (float)Math.Pow((P(X, S) - S[i].Center).Length, n))) / wSum;
+        }
+
+        //-----------------------------------------------------------------------------------------------------------------------
+
+        // funkcia v citateli i-tej vahovej funkcie, ktora sluzi na stabilnejsie vyjadrenie vahovych funkcii
+        private float _p(int i, Vector2 X, List<Sphere> S, float delta)
+        {
+            float pSum = 1.0f;
+            for (int j = 0; j < i; j++)
+            {
+                pSum *= (float)Math.Pow((X - S[j].CenterInTime(0).Xy).Length - delta * S[j].R, MainWindow.Eta); //(float)Math.Pow(Vector2.Dot(X - S[j].Center.Xy, X - S[j].Center.Xy) - Math.Pow(delta * S[j].R, 2), n);
+            }
+            for (int j = i + 1; j < S.Count; j++)
+            {
+                pSum *= (float)Math.Pow((X - S[j].CenterInTime(0).Xy).Length - delta * S[j].R, MainWindow.Eta); //(float)Math.Pow(Vector2.Dot(X - S[j].Center.Xy, X - S[j].Center.Xy) - Math.Pow(delta * S[j].R, 2), n);
+            }
+            return pSum;
+        }
+
+        private Matrix4 _K(float u, float v, float t, List<Sphere> S)
+        {
+            float dt = 0.0f;
+            float ut = 0.0f, vt = 0.0f, zt = 0.0f, dit;
+
+            Vector2 X = new Vector2(u, v);
+
+            Vector4 row0 = Vector4.Zero;
+            Vector4 row1 = Vector4.Zero;
+            Vector4 row2 = Vector4.Zero;
+            Vector4 row3 = new Vector4(0.0f, 0.0f, 0.0f, 1.0f);
+
+            for (int i = 0; i < S.Count; i++)
+            {
+                Vector3 center = S[i].CenterInTime(0);
+                dit = 1.0f + t * (S[i].R / rRef - 1.0f);
+                dt += _w(i, X, S, 0.0f) * dit;
+                ut += _w(i, X, S, 0.0f) * (center.X * (1.0f - dit) + t * S[i].Translation.X);
+                vt += _w(i, X, S, 0.0f) * (center.Y * (1.0f - dit) + t * S[i].Translation.Y);
+                zt += _w(i, X, S, 0.0f) * t * S[i].Translation.Z; // _w(i, X, S, 0.0f) * t * center.Z;
+            }
+
+            row0[0] = dt;
+            row0[3] = ut;
+
+            row1[1] = dt;
+            row1[3] = vt;
+
+            row2[2] = dt;
+            row2[3] = zt;
+
+            return new Matrix4(row0, row1, row2, row3);
+        }
+
+        //-----------------------------------------------------------------------------------------------------------------------
+
+        // parcialna derivacia podla u/v i-tej vahovej funkcie
+        private float _dW(string uv, int i, float u, float v, float delta, List<Sphere> S)
+        {
+            return (_dF(uv, i, u, v, delta, S) * _G(u, v, delta, S) - _F(i, u, v, delta, S) * _dG(uv, u, v, delta, S)) / (float)Math.Pow(_G(u, v, delta, S), 2);
+        }
+
+        //-----------------------------------------------------------------------------------------------------------------------
+
+        private float _F(int i, float u, float v, float delta, List<Sphere> S)
+        {
+            Vector2 X = new Vector2(u, v);
+            return 1.0f / (float)Math.Pow((X - S[i].CenterInTime(0).Xy).Length - delta * S[i].R, MainWindow.Eta);
+        }
+
+        //-----------------------------------------------------------------------------------------------------------------------
+
+        private float _dF(string uv, int i, float u, float v, float delta, List<Sphere> S)
+        {
+            Vector2 X = new Vector2(u, v);
+            if (uv == "u") return -MainWindow.Eta * (u - S[i].CenterInTime(0).X) / ((X - S[i].CenterInTime(0).Xy).Length * (float)Math.Pow((X - S[i].CenterInTime(0).Xy).Length - delta * S[i].R, MainWindow.Eta + 1));
+            else if (uv == "v") return -MainWindow.Eta * (v - S[i].CenterInTime(0).Y) / ((X - S[i].CenterInTime(0).Xy).Length * (float)Math.Pow((X - S[i].CenterInTime(0).Xy).Length - delta * S[i].R, MainWindow.Eta + 1));
+            else return 0.0f;
+        }
+
+        //-----------------------------------------------------------------------------------------------------------------------
+
+        private float _G(float u, float v, float delta, List<Sphere> S)
+        {
+            float gSum = 0.0f;
+            for (int i = 0; i < S.Count; i++)
+            {
+                gSum += _F(i, u, v, delta, S);
+            }
+            return gSum;
+        }
+
+        //-----------------------------------------------------------------------------------------------------------------------
+
+        private float _dG(string uv, float u, float v, float delta, List<Sphere> S)
+        {
+            float gSum = 0.0f;
+            for (int i = 0; i < S.Count; i++)
+            {
+                gSum += _dF(uv, i, u, v, delta, S);
+            }
+            return gSum;
+        }
+
+        // nastavenie referencneho bodu
+        private void _SetRefRadius(List<Sphere> S, bool min = false)
+        {
+            float rValue = min ? float.MaxValue : float.MinValue;
+
+            for (int i = 0; i < S.Count; i++)
+            {
+                if (min && rValue > S[i].R)
+                {
+                    rValue = S[i].R;
+                }
+                else if (rValue < S[i].R)
+                {
+                    rValue = S[i].R;
+                }
+            }
+
+            rRef = rValue;
+        }
+
+        private void _SetRefRadius(Sphere S)
+        {
+            rRef = S.R;
+        }
+    }
+
+    class SideSurface
+    {
+        private readonly MainWindow _window;
+        private readonly BranchedSurface _branchedSurface1;
+        private readonly BranchedSurface _branchedSurface2;
+
+        private Sphere Sphere1 { get; set; } = null;
+        private Sphere Sphere2 { get; set; } = null;
+
+        public int Id { get; set; } = 0;
+        public Vector3[,] Samples { get; set; } = new Vector3[120, 120];
+
+        public SideSurface(MainWindow window, int id, BranchedSurface branchedSurface1, BranchedSurface branchedSurface2)
+        {
+            _window = window;
+            Id = id;
+            _branchedSurface1 = branchedSurface1;
+            _branchedSurface2 = branchedSurface2;
+
+            _SetCommonSpheres();
+            _ValidateCommonSpheres();
+        }
+
+        //-----------------------------------------------------------------------------------------------------------------------
+
+        // vypocet bodov vsetkych segmentov bocnej potahovej plochy
+        public long ComputeSurface(int lod)
+        {
+            Stopwatch stopWatch = new Stopwatch();
+            long time = 0;
+
+            if (Sphere1 == null || Sphere2 == null)
+            {
+                return time;
+            }
+
+            if (MainWindow.Homotopy)
+            {
+                stopWatch.Start();
+                // vypocet vo vzorkovacich bodoch na "okrajoch" hornej casti plochy
+                for (int j = 0; j < lod; j++)
+                {
+                    float u = (float)j / (lod - 1.0f);
+
+                    // vypocitame ich ako body na Coonsovej zaplate
+                    for (int k = 0; k < lod; k++)
+                    {
+                        float v = (float)k / (lod - 1.0f);
+                        Samples[k, j] = _CoonsPatchPoint(u, v, MainWindow.casT);
+                    }
+                }
+                stopWatch.Stop();
+                time += stopWatch.ElapsedMilliseconds;
+            }
+
+            return time;
+        }
+
+        //-----------------------------------------------------------------------------------------------------------------------
+
+        // vykreslenie bodov vsetkych segmentov bocnej potahovej plochy
+        public void DrawSurface(int lod)
+        {
+            float[] red = { 1.0f, 0.0f, 0.0f, 1.0f };
+            float[] Diffuse = { 1.0f, 1.0f, 0.0f, 1.0f }, Ambient, Specular = { 0.5f, 0.5f, 0.5f, 1.0f };
+            float Shininess = 0.7f;
+
+            if (MainWindow.ColorOne)
+            {
+                Ambient = new float[] { 1.0f, 1.0f, 0.0f, 1.0f };
+                Specular = new float[] { 0.05f, 0.05f, 0.05f, 0.5f };
+                Shininess = 0.1f;
+            }
+            else
+            {
+                Ambient = new float[] { 1.0f, 0.55f, 0.0f, 1.0f };
+                Specular = new float[] { 0.6f, 0.6f, 0.3f, 1.0f };
+            }
+
+            // vykreslenie bocnej casti plochy
+            for (int j = 0; j < lod - 1; j++)
+            {
+                for (int k = 0; k < lod - 1; k++)
+                {
+                    if (_window.checkBox4.IsChecked == true)
+                    {
+                        GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
+                        GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Diffuse, Diffuse);
+                        GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Ambient, Ambient);
+                        GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Specular, Specular);
+                        GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Shininess, Shininess);
+
+                        // vypocet normal vo vrcholoch
+                        Vector3 n1 = _ComputeNormal(j, k).Normalized();
+                        Vector3 n2 = _ComputeNormal(j + 1, k).Normalized();
+                        Vector3 n3 = _ComputeNormal(j + 1, k + 1).Normalized();
+                        Vector3 n4 = _ComputeNormal(j, k + 1).Normalized();
+
+                        GL.Begin(PrimitiveType.Quads);
+                        GL.Normal3(n1);
+                        GL.Vertex3(Samples[j, k]);
+                        GL.Normal3(n2);
+                        GL.Vertex3(Samples[j + 1, k]);
+                        GL.Normal3(n3);
+                        GL.Vertex3(Samples[j + 1, k + 1]);
+                        GL.Normal3(n4);
+                        GL.Vertex3(Samples[j, k + 1]);
+                        GL.End();
+                    }
+
+                    if (_window.checkBox3.IsChecked == true)
+                    {
+                        GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
+                        GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Diffuse, red);
+                        GL.Material(MaterialFace.FrontAndBack, MaterialParameter.Ambient, red);
+                        GL.LineWidth(1.0f);
+                        GL.Begin(PrimitiveType.LineLoop);
+                        GL.Vertex3(Samples[j, k]);
+                        GL.Vertex3(Samples[j + 1, k]);
+                        GL.Vertex3(Samples[j + 1, k + 1]);
+                        GL.Vertex3(Samples[j, k + 1]);
+                        GL.End();
+                    }
+                }
+            }
+        }
+
+        //-----------------------------------------------------------------------------------------------------------------------
+
+        private void _SetCommonSpheres()
+        {
+            Sphere1 = null;
+            Sphere2 = null;
+
+            if (_branchedSurface1 == null || _branchedSurface2 == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < _branchedSurface1.Spheres.Count; i++)
+            {
+                Sphere sphere1 = _branchedSurface1.Spheres[i];
+                for (int j = 0; j < _branchedSurface2.Spheres.Count; j++)
+                {
+                    Sphere sphere2 = _branchedSurface2.Spheres[j];
+                    if (Sphere1 != null && Sphere2 != null)
+                    {
+                        return;
+                    }
+
+                    if (Sphere1 == null && sphere1 == sphere2)
+                    {
+                        Sphere1 = sphere1;
+                    }
+                    else if (Sphere2 == null && sphere1 == sphere2)
+                    {
+                        Sphere2 = sphere1;
+                    }
+                }
+            }
+        }
+
+        private void _ValidateCommonSpheres()
+        {
+            if (Sphere1 != null && Sphere2 != null)
+            {
+                Vector3 center1 = Sphere1.CenterInTime(0);
+                Vector3 center2 = Sphere2.CenterInTime(0);
+
+                Vector3 B = _c0(0, 0);
+                Vector3 A = _c1(0, 0);
+                Vector3 v1 = (A - center1).Normalized();
+                Vector3 v2 = (B - center1).Normalized();
+
+                Vector3 t3 = Vector3.Cross(v2, v1);
+
+                if (Vector3.Dot(t3, center2 - center1) < 0)
+                {
+                    Sphere tmp = Sphere1;
+                    Sphere1 = Sphere2;
+                    Sphere2 = tmp;
+                }
+            }
+        }
+
+        //-----------------------------------------------------------------------------------------------------------------------
+
+        // vypocita bod na Coonsovej zaplate na i-tom segmente v case t
+        private Vector3 _CoonsPatchPoint(float u, float v, float t)
+        {
+            return _Sc(u, v, t) + _Sd(u, v, t) - _Scd(u, v, t);
+        }
+
+        //-----------------------------------------------------------------------------------------------------------------------
+
+        // prva tvoriaca zaplata v case t
+        private Vector3 _Sc(float u, float v, float t)
+        {
+            return MainWindow.H3(0, v) * _c0(u, t) + MainWindow.H3(1, v) * _e(0, u, t) + MainWindow.H3(2, v) * _e(1, u, t) + MainWindow.H3(3, v) * _c1(u, t);
+        }
+
+        //-----------------------------------------------------------------------------------------------------------------------
+
+        // druha tvoriaca zaplata v case t
+        private Vector3 _Sd(float u, float v, float t)
+        {
+            return MainWindow.H3(0, u) * _d0(v, t) + MainWindow.H3(1, u) * _f(0, v, t) + MainWindow.H3(2, u) * _f(1, v, t) + MainWindow.H3(3, u) * _d1(v, t);
+        }
+
+        //-----------------------------------------------------------------------------------------------------------------------
+
+        // korekcna zaplata v case t
+        private Vector3 _Scd(float u, float v, float t)
+        {
+            Vector4 Hu = new Vector4(MainWindow.H3(0, u), MainWindow.H3(1, u), MainWindow.H3(2, u), MainWindow.H3(3, u));
+            Vector4 Hv = new Vector4(MainWindow.H3(0, v), MainWindow.H3(1, v), MainWindow.H3(2, v), MainWindow.H3(3, v));
+            /*Vector3 t00 = Vector3.Zero;
+            Vector3 t10 = Vector3.Zero;
+            Vector3 t01 = Vector3.Zero;
+            Vector3 t11 = Vector3.Zero;*/
+
+            return Hv[0] * (Hu[0] * _c0(0, t) + Hu[1] * _f(0, 0, t) + Hu[2] * _f(1, 0, t) + Hu[3] * _c0(1, t)) +
+                   Hv[1] * (Hu[0] * _e(0, 0, t) /*+ Hu[1] * t00 + Hu[2] * t01*/ + Hu[3] * _e(0, 1, t)) +
+                   Hv[2] * (Hu[0] * _e(1, 0, t) /*+ Hu[1] * t10 + Hu[2] * t11*/ + Hu[3] * _e(1, 1, t)) +
+                   Hv[3] * (Hu[0] * _c1(0, t) + Hu[1] * _f(0, 1, t) + Hu[2] * _f(1, 1, t) + Hu[3] * _c1(1, t));
+        }
+
+        // hranicna krivka c0 Coonsovej zaplaty v case t
+        private Vector3 _c0(float u, float t)
+        {
+            _branchedSurface1.TransformSpheresToLocal();
+
+            Vector3 center1 = new Vector3(Sphere1.CenterInTime(0).X, Sphere1.CenterInTime(0).Y, 0.0f);
+            Vector3 center2 = new Vector3(Sphere2.CenterInTime(0).X, Sphere2.CenterInTime(0).Y, 0.0f);
+            Vector3 v = center2 - center1;
+
+            Vector3 X = MainWindow.HermiteCurve(u, center1, v, v, center2);
+            Vector3 surfacePoint = _branchedSurface1.SUp(X.X, X.Y, t);
+
+            _branchedSurface1.TransformSpheresToGlobal();
+
+            return surfacePoint;
+        }
+
+        //-----------------------------------------------------------------------------------------------------------------------
+
+        // hranicna krivka c1 Coonsovej zaplaty na i-tom segmente v case t
+        private Vector3 _c1(float u, float t)
+        {
+            _branchedSurface2.TransformSpheresToLocal();
+
+            Vector3 center1 = new Vector3(Sphere1.CenterInTime(0).X, Sphere1.CenterInTime(0).Y, 0.0f);
+            Vector3 center2 = new Vector3(Sphere2.CenterInTime(0).X, Sphere2.CenterInTime(0).Y, 0.0f);
+            Vector3 v = center2 - center1;
+
+            Vector3 X = MainWindow.HermiteCurve(u, center1, v, v, center2);
+            Vector3 surfacePoint = _branchedSurface2.SUp(X.X, X.Y, t);
+
+            _branchedSurface2.TransformSpheresToGlobal();
+
+            return surfacePoint;
+        }
+
+        //-----------------------------------------------------------------------------------------------------------------------
+
+        // hranicna krivka d0 Coonsovej zaplaty case t
+        private Vector3 _d0(float v, float t)
+        {
+            Vector3 center = Sphere1.CenterInTime(t);
+
+            Vector3 B = _c0(0, t);
+            Vector3 A = _c1(0, t);
+            Vector3 v1 = (A - center).Normalized();
+            Vector3 v2 = (B - center).Normalized();
+
+            Vector3 t3 = Vector3.Cross(v2, v1);
+
+            float angle = Vector3.CalculateAngle(v1, v2); // (float)Math.Acos(Vector3.Dot(v1, v2) / (v1.Length * v2.Length));
+
+            Vector3 t2 = Vector3.Cross(t3, v2).Normalized();
+
+            float dt = 1.0f + (1.0f - t) * (Sphere1.R0 / Sphere1.R - 1.0f);
+            float Rt = Sphere1.R + (1.0f - t) * (Sphere1.R0 - Sphere1.R);
+
+            return center + Rt * (float)Math.Cos(angle * (double)v) * v2 + Rt * (float)Math.Sin(angle * (double)v) * t2; // v2;
+        }
+
+        //-----------------------------------------------------------------------------------------------------------------------
+
+        // hranicna krivka d1 Coonsovej zaplaty v case t
+        private Vector3 _d1(float v, float t)
+        {
+            Vector3 center = Sphere2.CenterInTime(t);
+
+            Vector3 B = _c0(1, t);
+            Vector3 A = _c1(1, t);
+            Vector3 v1 = (A - center).Normalized();
+            Vector3 v2 = (B - center).Normalized();
+
+            Vector3 t3 = Vector3.Cross(v2, v1);
+
+            float angle = Vector3.CalculateAngle(v1, v2); // (float)Math.Acos(Vector3.Dot(v1, v2) / (v1.Length * v2.Length));
+
+            Vector3 t2 = Vector3.Cross(t3, v2).Normalized();
+
+            float dit = 1.0f + (1.0f - t) * (Sphere2.R0 / Sphere2.R - 1.0f);
+            float Rt = Sphere2.R + (1.0f - t) * (Sphere2.R0 - Sphere2.R);
+
+            return center + Rt * (float)Math.Cos(angle * (double)v) * v2 + Rt * (float)Math.Sin(angle * (double)v) * t2; // v2;
+        }
+
+        //-----------------------------------------------------------------------------------------------------------------------
+
+        // j-ta (j=0,1) funkcia derivacii ej na bocnej potahovej plochy v case t
+        private Vector3 _e(int j, float u, float t)
+        {
+            if (j == 0)
+            {
+                _branchedSurface1.TransformSpheresToLocal();
+            }
+            else
+            {
+                _branchedSurface2.TransformSpheresToLocal();
+            }
+
+            Vector3 center1 = Sphere1.CenterInTime(0);
+            Vector3 center2 = Sphere2.CenterInTime(0);
+            Vector3 v = center2 - center1;
+
+            Vector3 X = MainWindow.HermiteCurve(u, center1, v, v, center2);
+
+            Vector3 nS;
+            Vector3 dcij;
+
+            if (j == 0)
+            {
+                Vector3 normal = _branchedSurface1.normalSH(X.X, X.Y, t);
+                Vector3 dsup = _branchedSurface1.dsup(u, t, Sphere1, Sphere2);
+                nS = (_branchedSurface1.InverseMatrix * new Vector4(normal.X, normal.Y, normal.Z, 0.0f)).Xyz;
+                dcij = (_branchedSurface1.InverseMatrix * new Vector4(dsup.X, dsup.Y, dsup.Z, 0.0f)).Xyz;
+
+                _branchedSurface1.TransformSpheresToGlobal();
+            }
+            else
+            {
+                Vector3 normal = _branchedSurface2.normalSH(X.X, X.Y, t);
+                Vector3 dsup = _branchedSurface2.dsup(u, t, Sphere1, Sphere2);
+                nS = (_branchedSurface2.InverseMatrix * new Vector4(normal.X, normal.Y, normal.Z, 0.0f)).Xyz;
+                dcij = (_branchedSurface2.InverseMatrix * new Vector4(dsup.X, dsup.Y, dsup.Z, 0.0f)).Xyz;
+
+                _branchedSurface2.TransformSpheresToGlobal();
+            }
+
+            return MainWindow.Tau * Vector3.Cross(nS, dcij).Normalized();
+        }
+
+        //-----------------------------------------------------------------------------------------------------------------------
+
+        // j-ta (j=0,1) funkcia derivacii fj na bocnej potahovej plochy v case t
+        private Vector3 _f(int j, float v, float t)
+        {
+            Vector3 center = j == 0 ? Sphere1.CenterInTime(t) : Sphere2.CenterInTime(t);
+
+            Vector3 B = j == 0 ? _c0(0, t) : _c0(1, t);
+            Vector3 A = j == 0 ? _c1(0, t) : _c1(1, t);
+            Vector3 v1 = A - center;
+            Vector3 v2 = B - center;
+
+            Vector3 n = Vector3.Cross(v1, v2).Normalized();
+
+            if (j == 0) return (float)Math.Pow(Sphere1.R / Sphere2.R, MainWindow.Lambda) * n;
+            else return (float)Math.Pow(Sphere2.R / Sphere1.R, MainWindow.Lambda) * n;
+        }
+
+        //-----------------------------------------------------------------------------------------------------------------------
+
+        // vypocita normalu vo vrchole (i,j) na segmente bocnej potahovej plochy
+        private Vector3 _ComputeNormal(int i, int j)
+        {
+            Vector3 n = new Vector3();
+            Vector3 v1;
+            Vector3 v2;
+            Vector3 v3;
+            Vector3 v4;
+            Vector3 n1;
+            Vector3 n2;
+            Vector3 n3;
+            Vector3 n4;
+
+            if (i > 0 && i < _window.Lod1 - 1 && j > 0 && j < _window.Lod1 - 1)
+            {
+                v1 = Samples[i + 1, j] - Samples[i, j];
+                v2 = Samples[i, j + 1] - Samples[i, j];
+                v3 = Samples[i - 1, j] - Samples[i, j];
+                v4 = Samples[i, j - 1] - Samples[i, j];
+                n1 = Vector3.Cross(v1, v2);
+                n2 = Vector3.Cross(v2, v3);
+                n3 = Vector3.Cross(v3, v4);
+                n4 = Vector3.Cross(v4, v1);
+                n = (n1 + n2 + n3 + n4) / 4.0f;
+            }
+            else if (i == 0)
+            {
+                if (j > 0 && j < _window.Lod1 - 1)
+                {
+                    v1 = Samples[i + 1, j] - Samples[i, j];
+                    v2 = Samples[i, j + 1] - Samples[i, j];
+                    v4 = Samples[i, j - 1] - Samples[i, j];
+                    n1 = Vector3.Cross(v1, v2);
+                    n4 = Vector3.Cross(v4, v1);
+                    n = (n1 + n4) / 2.0f;
+                }
+                else if (j == 0)
+                {
+                    v1 = Samples[i + 1, j] - Samples[i, j];
+                    v2 = Samples[i, j + 1] - Samples[i, j];
+                    n = Vector3.Cross(v1, v2);
+                }
+                else
+                {
+                    v1 = Samples[i + 1, j] - Samples[i, j];
+                    v4 = Samples[i, j - 1] - Samples[i, j];
+                    n = Vector3.Cross(v4, v1);
+                }
+            }
+            else if (i == _window.Lod1 - 1)
+            {
+                if (j > 0 && j < _window.Lod1 - 1)
+                {
+                    v2 = Samples[i, j + 1] - Samples[i, j];
+                    v3 = Samples[i - 1, j] - Samples[i, j];
+                    v4 = Samples[i, j - 1] - Samples[i, j];
+                    n2 = Vector3.Cross(v2, v3);
+                    n3 = Vector3.Cross(v3, v4);
+                    n = (n2 + n3) / 2.0f;
+                }
+                else if (j == 0)
+                {
+                    v2 = Samples[i, j + 1] - Samples[i, j];
+                    v3 = Samples[i - 1, j] - Samples[i, j];
+                    n = Vector3.Cross(v2, v3);
+                }
+                else
+                {
+                    v3 = Samples[i - 1, j] - Samples[i, j];
+                    v4 = Samples[i, j - 1] - Samples[i, j];
+                    n = Vector3.Cross(v3, v4);
+                }
+            }
+            else if (j == 0)
+            {
+                v1 = Samples[i + 1, j] - Samples[i, j];
+                v2 = Samples[i, j + 1] - Samples[i, j];
+                v3 = Samples[i - 1, j] - Samples[i, j];
+                n1 = Vector3.Cross(v1, v2);
+                n2 = Vector3.Cross(v2, v3);
+                n = (n1 + n2) / 2.0f;
+            }
+            else if (j == _window.Lod1 - 1)
+            {
+                v1 = Samples[i + 1, j] - Samples[i, j];
+                v3 = Samples[i - 1, j] - Samples[i, j];
+                v4 = Samples[i, j - 1] - Samples[i, j];
+                n3 = Vector3.Cross(v3, v4);
+                n4 = Vector3.Cross(v4, v1);
+                n = (n3 + n4) / 2.0f;
+            }
+            return n;
         }
     }
 }
